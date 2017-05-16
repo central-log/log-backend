@@ -1,44 +1,7 @@
-var uuidV4 = require('uuid/v4');
-var RoleDAO = require('./service/role');
-
-var PaginationResponse = function (data, page, pageSize, totalCount) {
-  return {
-    respCode: "_200",
-    result: {
-      data: data,
-      page: page,
-      pageSize: pageSize,
-      totalCount: totalCount
-    }
-  }
-}
-var ObjectResponse = function (data) {
-  return {
-    respCode: "_200",
-    result: data
-  }
-}
-var generateSuccessResponse = function (body, message) {
-  var response = {
-    "respCode": "_200"
-  }
-  if(body){
-    response.result = body;
-  }
-  if(message){
-    response.errMsg = message;
-  }
-  return response;
-}
-var InternalErrorResponse = function () {
-  return {
-    "respCode": "_"+500,
-    "errMsg": '服务器操异常'
-  }
-}
-var DB = {
-  roles: []
-};
+var DAO = require('./service/role');
+var InternalErrorResponse = require('./entity/InternalErrorResponse');
+var ObjectResponse = require('./entity/ObjectResponse');
+var PaginationResponse = require('./entity/PaginationResponse');
 
 module.exports = {
     init: function(app) {
@@ -180,7 +143,7 @@ module.exports = {
               criteria.name = { $regex: new RegExp(params.name) };
             }
 
-            RoleDAO.findRole(criteria, params.page, params.pageSize, function(err, docs, totalSize){
+            DAO.find(criteria, params.page, params.pageSize, function(err, docs, totalSize){
               if(err){
                 res.json(new InternalErrorResponse());
                 return;
@@ -197,14 +160,13 @@ module.exports = {
 
             var timestamp = new Date().getTime();
             var roleEntity = {
-              // id: uuidV4(),
               name: req.body.name,
               description: req.body.description,
               createDate: timestamp,
               lastUpdate: timestamp,
               enabled: true
             }
-            RoleDAO.addRole(roleEntity, function(err, result){
+            DAO.add(roleEntity, function(err, result){
               if(err){
                 res.json(new InternalErrorResponse());
                 return;
@@ -214,7 +176,7 @@ module.exports = {
         });
         // 角色详情
         app.get('/role/:roleId', function(req, res) {
-            RoleDAO.findRoleById(req.params.roleId, function(err, doc){
+            DAO.findById(req.params.roleId, function(err, doc){
               if(err){
                   res.json(new InternalErrorResponse());
                   return;

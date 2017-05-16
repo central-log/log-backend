@@ -1,5 +1,5 @@
 var Basic = require('./basic');
-var collectionName = 'roles';
+var collectionName = 'users';
 
 var add = Basic.generateAdd(collectionName);
 var find = Basic.generateFind(collectionName);

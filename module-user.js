@@ -1,3 +1,8 @@
+var DAO = require('./service/user');
+var InternalErrorResponse = require('./entity/InternalErrorResponse');
+var ObjectResponse = require('./entity/ObjectResponse');
+var PaginationResponse = require('./entity/PaginationResponse');
+
 module.exports = {
     init: function(app) {
         /* --------------------Module user--------------------------*/
@@ -66,19 +71,63 @@ module.exports = {
             total: 100
         };
 
+        app.post('/user/query', function (req, res) {
+          var params = req.body;
+          if(!params.page || !params.pageSize){
+            res.status(400).send('Bad Request! Required Parameters: page and pageSize');
+          }
+
+          var criteria = {};
+          if(params.email){
+            criteria.email = { $regex: new RegExp(params.email) };
+          }
+
+          DAO.find(criteria, params.page, params.pageSize, function(err, docs, totalSize){
+            if(err){
+              res.json(new InternalErrorResponse());
+              return;
+            }
+            return res.json(new PaginationResponse(docs, params.page, params.pageSize,totalSize));
+          });
+        });
         // GET All users
         app.get('/user', function(req, res) {
             res.json(users);
         });
 
         // add new user
-        app.post('/user/', function(req, res) {
-            res.json(req.body);
+        app.post('/user', function(req, res) {
+          if(!req.body.name || !req.body.email){
+            res.status(400).send('Bad Request! Required Parameters: name and description');
+            return;
+          }
+
+          var timestamp = new Date().getTime();
+          var roleEntity = {
+            name: req.body.name,
+            email: req.body.email,
+            createDate: timestamp,
+            lastUpdate: timestamp,
+            enabled: true
+          }
+          DAO.add(roleEntity, function(err, result){
+            if(err){
+              res.json(new InternalErrorResponse());
+              return;
+            }
+            res.json(new ObjectResponse(roleEntity));
+          });
         });
 
         // Get user Detail
         app.get('/user/:userId', function(req, res) {
-            res.json(userDetail);
+          DAO.findById(req.params.userId, function(err, doc){
+            if(err){
+                res.json(new InternalErrorResponse());
+                return;
+            }
+            res.json(new ObjectResponse(doc?doc:null));
+          });
         });
 
         // Edit user Detail
