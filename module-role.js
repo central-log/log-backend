@@ -1,10 +1,39 @@
 var uuidV4 = require('uuid/v4');
+var RoleDAO = require('./service/role');
 
-var generateResponse = function (statusCode, body, message) {
+var PaginationResponse = function (data, page, pageSize, totalCount) {
   return {
-    "respCode": "_"+statusCode,
-    "result": body,
-    "errMsg": message
+    respCode: "_200",
+    result: {
+      data: data,
+      page: page,
+      pageSize: pageSize,
+      totalCount: totalCount
+    }
+  }
+}
+var ObjectResponse = function (data) {
+  return {
+    respCode: "_200",
+    result: data
+  }
+}
+var generateSuccessResponse = function (body, message) {
+  var response = {
+    "respCode": "_200"
+  }
+  if(body){
+    response.result = body;
+  }
+  if(message){
+    response.errMsg = message;
+  }
+  return response;
+}
+var InternalErrorResponse = function () {
+  return {
+    "respCode": "_"+500,
+    "errMsg": '服务器操异常'
   }
 }
 var DB = {
@@ -139,77 +168,59 @@ module.exports = {
             }
         ];
 
-        // GET All Roles
+        // 查询角色
         app.post('/role/query', function(req, res) {
             var params = req.body;
+            if(!params.page || !params.pageSize){
+              res.status(400).send('Bad Request! Required Parameters: page and pageSize');
+            }
+
+            var criteria = {};
             if(params.name){
-
-            }
-            if(!params.page){
-
-            }
-            if(!params.pageSize){
-
+              criteria.name = params.name;
             }
 
-            return res.json({
-                "respCode": "_200",
-                "result": {
-                    "page": 1,
-                    "pageSize": 50,
-                    "totalCount": 52,
-                    "data": [
-                        {
-                            "id": 2,
-                            "name": "倒萨大师大师",
-                            "description": "12314113",
-                            "enabled": false,
-                            "createDate": 1448936381000,
-                            "lastUpdate": 1448961314000
-                        }, {
-                            "id": 4,
-                            "name": "客服",
-                            "description": "service role",
-                            "enabled": true,
-                            "createDate": 1449136807000,
-                            "lastUpdate": 1449136799000
-                        }, {
-                            "id": 5,
-                            "name": "角色002",
-                            "description": "啊啊",
-                            "enabled": true,
-                            "createDate": 1449288704000,
-                            "lastUpdate": 1449289015000
-                        }, {
-                            "id": 1,
-                            "name": "超级管理员",
-                            "description": "超级管理员",
-                            "enabled": true,
-                            "createDate": 1448434772000,
-                            "lastUpdate": 1448434772000
-                        }, {
-                            "id": 3,
-                            "name": "销售",
-                            "description": "sale role",
-                            "enabled": true,
-                            "createDate": 1449136721000,
-                            "lastUpdate": 1449136713000
-                        }
-                    ],
-                    "totalPage": 1
-                }
+            RoleDAO.findRole(criteria, params.page, params.pageSize, function(err, docs, totalSize){
+              if(err){
+                res.json(new InternalErrorResponse());
+                return;
+              }
+              return res.json(new PaginationResponse(docs, params.page, params.pageSize,totalSize));
+            })
+        });
+        // 增加角色
+        app.post('/role', function(req, res) {
+            if(!req.body.name || !req.body.description){
+              res.status(400).send('Bad Request! Required Parameters: name and description');
+              return;
+            }
+
+            var timestamp = new Date().getTime();
+            var roleEntity = {
+              // id: uuidV4(),
+              name: req.body.name,
+              description: req.body.description,
+              createDate: timestamp,
+              lastUpdate: timestamp,
+              enabled: true
+            }
+            RoleDAO.addRole(roleEntity, function(err, result){
+              if(err){
+                res.json(new InternalErrorResponse());
+                return;
+              }
+              res.json(new ObjectResponse(roleEntity));
             });
         });
-        // Get Role Detail
+        // 角色详情
         app.get('/role/:roleId', function(req, res) {
-            var roleEntity = DB.roles.find(function(role){
-              return role.id === req.params.roleId;
-            })
-            if(roleEntity){
-              res.json(generateResponse(200, roleEntity));
-            }else{
-              res.json(generateResponse(200, null));
-            }
+            RoleDAO.findRoleById(req.params.roleId, function(err, doc){
+              if(err){
+                  res.json(new InternalErrorResponse());
+                  return;
+              }
+              res.json(new ObjectResponse(doc?doc:null));
+            });
         });
 
         // userIds seperated by comma
@@ -224,29 +235,6 @@ module.exports = {
             res.json({"respCode": "_200"});
         });
 
-        // add Role by name, disabled
-        app.post('/role', function(req, res) {
-            if(!req.body.name || !req.body.description){
-              res.status(400).send('Bad Request! Required Parameters: name and description');
-              return;
-            }
-
-            var timestamp = new Date().getTime();
-            var roleEntity = {
-              id: uuidV4(),
-              name: req.body.name,
-              description: req.body.description,
-              createDate: timestamp,
-              lastUpdate: timestamp,
-              enabled: true
-            }
-            //Todo: Save to DB
-            DB.roles.push(roleEntity);
-            res.json({
-                "respCode": "_200",
-                "result": roleEntity
-            });
-        });
         // disable, modify
         app.post('/role/:roleId', function(req, res) {
 
@@ -321,7 +309,5 @@ module.exports = {
             }
             res.sendStatus(204);
         });
-
-        /* --------------------End Module Role--------------------------*/
     }
 }
