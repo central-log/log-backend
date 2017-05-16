@@ -177,7 +177,7 @@ module.exports = {
 
             var criteria = {};
             if(params.name){
-              criteria.name = params.name;
+              criteria.name = { $regex: new RegExp(params.name) };
             }
 
             RoleDAO.findRole(criteria, params.page, params.pageSize, function(err, docs, totalSize){

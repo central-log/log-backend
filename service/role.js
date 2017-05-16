@@ -33,6 +33,10 @@ var findRole = function(criteria, page, pageSize, callback){
       callback && callback(err);
       return;
     }
+    if(!result || !result.length){
+      callback && callback(null, [], 0);
+      return;
+    }
     var totalSize = result[0].count;
     var maxPage = Math.ceil(totalSize/pageSize);
     if(maxPage < page){
