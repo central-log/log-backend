@@ -69,7 +69,11 @@ module.exports = {
 
 			var criteria = {};
 			if(params.name){
-				criteria.name = { $regex: new RegExp(params.name) };
+				criteria = { "$or": [
+				    { "name": { "$regex": new RegExp(params.name)} },
+				    { "description": { "$regex": new RegExp(params.name) }},
+				    { "email": { "$regex": new RegExp(params.name) }}
+				]};
 			}
 
 			DAO.find(criteria, params.page, params.pageSize, function(err, docs, totalSize){
