@@ -1,23 +1,10 @@
+var DAO = require('./service/domain');
+var InternalErrorResponse = require('./entity/InternalErrorResponse');
+var ObjectResponse = require('./entity/ObjectResponse');
+var PaginationResponse = require('./entity/PaginationResponse');
+
 module.exports = {
 	init: function(app){
-	/* --------------------Module Domain--------------------------*/
-		var pageDomains = {"respCode":"_200","result":[{"id":1,"name":"techops","displayName":"技术运维系统","description":"programer to configure the menu&uri pattern access privileges","url":"https://ops-dev.my.com/techops/"},{"id":2,"name":"crm","displayName":"客户管理系统","description":"customer relation ship management syste","url":"https://crm-dev.my.com/"}]};
-		var allDomains = [{
-		  id: '1001',
-		  name: '权限管理系统',
-		  desc: '用来分配权限的子系统',
-		  url: 'http://www.baidu.com',
-		  alias: 'TechOps',
-		  disabled: false
-		}, {
-		  id: '1002',
-		  name: 'BD渠道管理系统',
-		  desc: 'BD渠道管理系统',
-		  url: 'http://www.sina.com',
-		  alias: 'TechOps',
-		  disabled: true
-		}];
-
 		var allMenus = [{
 			id:'1001',
 			domain:'TechOps',
@@ -74,9 +61,58 @@ module.exports = {
 	      entryTime: '2015/10/12'
 	    }];
 		// GET All Domains
-		app.get('/common/domains', function (req, res) {
-          return res.json(pageDomains);
-        });
+		app.get('/domain', function (req, res) {
+			var params = req.query;
+			if(!params.page || !params.pageSize){
+				res.status(400).send('Bad Request! Required Parameters: page and pageSize');
+			}
+
+			var criteria = {};
+			if(params.name){
+				criteria.name = { $regex: new RegExp(params.name) };
+			}
+
+			DAO.find(criteria, params.page, params.pageSize, function(err, docs, totalSize){
+				if(err){
+					res.json(new InternalErrorResponse());
+					return;
+				}
+				return res.json(new PaginationResponse(docs, params.page, params.pageSize,totalSize));
+			});
+    });
+
+		app.put('/domain', function (req, res) {
+
+			if(!req.body.name
+				|| !req.body.email
+				|| !req.body.description
+				|| !req.body.endDateTime
+				|| !req.body.starDateTime){
+				res.status(400).send('Bad Request! Required Parameters: name, email, endDateTime, starDateTime, description');
+				return;
+			}
+
+			var timestamp = new Date().getTime();
+			var entity = {
+				name: req.body.name,
+				description: req.body.description,
+				email: req.body.email,
+				email: req.body.email,
+				endDateTime: req.body.endDateTime,
+				starDateTime: req.body.starDateTime,
+				createdTime: timestamp,
+				updatedTime: timestamp,
+				enabled: true
+			}
+			DAO.add(entity, function(err, result){
+				if(err){
+					res.json(new InternalErrorResponse());
+					return;
+				}
+				res.json(new ObjectResponse(entity));
+			});
+    });
+
         app.get('/common/groupTypes', function (req, res) {
           var start = new Date().getTime();
 
@@ -93,15 +129,13 @@ module.exports = {
 		});
 		// Get Domain Detail
 		app.get('/domain/:id', function (req, res) {
-		  console.log(req, req.params.id);
-		  var domain = null;
-		  for(var i=0, len=allDomains.length;i<len;i++){
-		  	if(allDomains[i].id===req.params.id){
-		  		domain = allDomains[i];
-		  		break;
-		  	}
-		  }
-		  res.json(domain);
+			DAO.findById(req.params.id, function(err, doc){
+				if(err){
+						res.json(new InternalErrorResponse());
+						return;
+				}
+				res.json(new ObjectResponse(doc?doc:null));
+			});
 		});
 
 		// userIds seperated by comma
@@ -123,16 +157,5 @@ module.exports = {
 		app.get('/domain/:domainId/url', function (req, res) {
 			res.json(allURLs);
 		});
-
-		// Serach User
-		/*
-			/menu
-			/menu?domain=&disabled=&name=
-			/url
-			/url?domain=&disabled=&name=
-			/user
-			/user?name=&email=&phone=&entryTime=&province=&area=&city=&group=&type=&disabled=
-			/
-		*/
 	}
 }
