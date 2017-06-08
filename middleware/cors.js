@@ -8,7 +8,9 @@ var allowCrossDomain = function(req, res, next) {
     if ('OPTIONS' == req.method) {
         res.sendStatus(200);
     } else {
-        next();
+        setTimeout(function(){
+          next();
+        }, 500)
     }
 };
 
