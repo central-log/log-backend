@@ -2,6 +2,7 @@ var DAO = require('./service/domain');
 var InternalErrorResponse = require('./entity/InternalErrorResponse');
 var ObjectResponse = require('./entity/ObjectResponse');
 var PaginationResponse = require('./entity/PaginationResponse');
+var ObjectId = require('mongodb').ObjectId;
 
 module.exports = {
 	init: function(app){
@@ -60,7 +61,7 @@ module.exports = {
 	      area: '上海',
 	      entryTime: '2015/10/12'
 	    }];
-		// GET All Domains
+		// 查询Domain列表
 		app.get('/domain', function (req, res) {
 			var params = req.query;
 			if(!params.page || !params.pageSize){
@@ -84,7 +85,7 @@ module.exports = {
 				return res.json(new PaginationResponse(docs, params.page, params.pageSize,totalSize));
 			});
     });
-
+		// 接入Domain
 		app.put('/domain', function (req, res) {
 
 			if(!req.body.name
@@ -140,6 +141,56 @@ module.exports = {
 				}
 				res.json(new ObjectResponse(doc?doc:null));
 			});
+		});
+
+		// userIds seperated by comma
+		app.post('/domain/:domainId/env', function (req, res) {
+
+			if(!req.body.name
+				|| !req.body.email
+				|| !req.body.description
+				|| !req.body.logLevel
+				|| !req.body.domainId){
+				res.status(400).send('Bad Request! Required Parameters: name, email, description, logLevel, domainId');
+				return;
+			}
+
+			var domainId = req.body.domainId;
+			var entity = {
+				name: req.body.name,
+				email: req.body.email,
+				description: req.body.description,
+				logLevel: req.body.logLevel
+			};
+
+			DAO.findById(domainId, function(err, doc){
+				if(err){
+						res.json(new InternalErrorResponse());
+						return;
+				}
+				var isAlreadyExists = false;
+				if(doc.env){
+					isAlreadyExists = doc.env.some(function(env){
+						return env.name.toLowerCase() === entity.name.toLowerCase();
+					})
+				}
+				if(isAlreadyExists){
+					res.json(new InternalErrorResponse('添加失败：部署环境'+entity.name + '已存在'));
+					return;
+				}
+				DAO.updateOne({
+					_id: new ObjectId(domainId)
+				},{
+					$set: { env : doc.env?doc.env.concat(entity):[entity] }
+				}, function(err, result){
+					if(err){
+							res.json(new InternalErrorResponse());
+							return;
+					}
+					res.sendStatus(204);
+				});
+			});
+
 		});
 
 		// userIds seperated by comma

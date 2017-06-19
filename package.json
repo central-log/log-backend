@@ -21,6 +21,7 @@
     "eslint": "^3.19.0",
     "eslint-config-es2015": "^1.1.0",
     "mongodb": "^2.2.26",
+    "mysql": "github:mysqljs/mysql",
     "uuid": "^3.0.1"
   }
 }

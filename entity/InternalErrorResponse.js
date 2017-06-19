@@ -1,7 +1,7 @@
-var InternalErrorResponse = function () {
+var InternalErrorResponse = function (message) {
   return {
     "respCode": "_"+500,
-    "errMsg": '服务器操异常'
+    "errMsg": message?message:'服务器操异常'
   }
 }
 

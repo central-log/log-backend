@@ -6,10 +6,6 @@ var add = function(collectionName){
       var collection = DB.collection(collectionName);
       // Insert some documents
       collection.insertMany([role], function(err, result) {
-        // assert.equal(err, null);
-        // assert.equal(3, result.result.n);
-        // assert.equal(3, result.ops.length);
-        // console.log("Inserted 3 documents into the document collection");
         callback(err, result);
       });
     };
@@ -47,9 +43,6 @@ var find = function(collectionName){
       }
 
       collection.find(criteria).skip((page-1)*pageSize).limit(pageSize).toArray(function(err, docs) {
-        // assert.equal(err, null);
-        // assert.equal(2, docs.length);
-        // console.log("Found the following records");
         callback && callback(err, docs, totalSize);
       });
     });
@@ -60,16 +53,31 @@ var findById = function(collectionName){
     var collection = DB.collection(collectionName);
     // Find some documents
     collection.findOne({_id: new ObjectId(id)},function(err, doc) {
-      // assert.equal(err, null);
-      // assert.equal(2, docs.length);
-      // console.log("Found the following records");
       callback && callback(err, doc);
     });
   };
 }
 
+var _update = function(collectionName, multiple){
+  return function(criteria, action, callback){
+    var collection = DB.collection(collectionName);
+    // Find some documents
+    collection[multiple?'update':'updateOne'](criteria,action,function(err, doc) {
+      callback && callback(err, doc);
+    });
+  };
+}
+var update = function(collectionName, multiple){
+  return _update(collectionName, true);
+}
+var updateOne = function(collectionName){
+  return _update(collectionName, false);
+}
+
 module.exports = {
   generateAdd: add,
   generateFind: find,
-  generateFindById: findById
+  generateFindById: findById,
+  generateUpdateOne: updateOne,
+  generateUpdate: update
 }
