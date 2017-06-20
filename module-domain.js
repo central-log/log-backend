@@ -143,7 +143,7 @@ module.exports = {
 			});
 		});
 
-		// userIds seperated by comma
+		// 添加部署环境
 		app.post('/domain/:domainId/env', function (req, res) {
 
 			if(!req.body.name
@@ -182,6 +182,62 @@ module.exports = {
 					_id: new ObjectId(domainId)
 				},{
 					$set: { env : doc.env?doc.env.concat(entity):[entity] }
+				}, function(err, result){
+					if(err){
+							res.json(new InternalErrorResponse());
+							return;
+					}
+					res.sendStatus(204);
+				});
+			});
+
+		});
+
+		// 修改部署环境
+		app.put('/domain/:domainId/env', function (req, res) {
+
+			if(!req.body.name
+				|| !req.body.email
+				|| !req.body.description
+				|| !req.body.logLevel
+				|| !req.body.domainId){
+				res.status(400).send('Bad Request! Required Parameters: name, email, description, logLevel, domainId');
+				return;
+			}
+
+			var domainId = req.body.domainId;
+			var beforeName = req.body.beforeName;
+			var entity = {
+				name: req.body.name,
+				email: req.body.email,
+				description: req.body.description,
+				logLevel: req.body.logLevel
+			};
+
+			DAO.findById(domainId, function(err, doc){
+				if(err){
+						res.json(new InternalErrorResponse());
+						return;
+				}
+				var currentEnv;
+				if(doc.env){
+					currentEnv = doc.env.find(function(env){
+						return env.name.toLowerCase() === beforeName.toLowerCase();
+					})
+				}
+				if(!currentEnv){
+					res.json(new InternalErrorResponse('修改失败：部署环境'+entity.name + '不存在，已被删除！'));
+					return;
+				}
+				currentEnv.name = req.body.name;
+				currentEnv.email = req.body.email;
+				currentEnv.description = req.body.description;
+				currentEnv.logLevel = req.body.logLevel;
+
+				DAO.updateOne({
+					_id: new ObjectId(domainId)
+				},{
+					$set: { env : doc.env }
 				}, function(err, result){
 					if(err){
 							res.json(new InternalErrorResponse());
