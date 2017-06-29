@@ -9,7 +9,20 @@ var add = function(collectionName){
         callback(err, result);
       });
     };
-}
+};
+
+var deleteMethod = function(collectionName){
+    return function(criteria, callback) {
+      // Get the documents collection
+      var collection = DB.collection(collectionName);
+      // Insert some documents
+      collection.deleteOne(criteria, function(err, result) {
+        callback(err, result);
+      });
+    };
+};
+
+
 var find = function(collectionName){
   return function(criteria, page, pageSize, callback){
     var collection = DB.collection(collectionName);
@@ -79,5 +92,6 @@ module.exports = {
   generateFind: find,
   generateFindById: findById,
   generateUpdateOne: updateOne,
-  generateUpdate: update
+  generateUpdate: update,
+  generateDelete: deleteMethod
 }
