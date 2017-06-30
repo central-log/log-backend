@@ -1,8 +1,5 @@
 var ObjectResponse = function (data) {
-  return {
-    respCode: "_200",
-    result: data
-  }
+  return data;
 }
 
 module.exports = ObjectResponse;

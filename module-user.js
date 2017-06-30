@@ -12,18 +12,16 @@ module.exports = {
             res.status(400).send('Bad Request! Required Parameters: domainId, env, page and pageSize');
           }
 
-          var criteria = {};
+          var criteria = {
+            "domainId": params.domainId,
+            "env": params.env
+          };
           if(query.email){
-            criteria = {
-                  "domainId": params.domainId,
-                  "env": params.env,
-                  "$or": [
-                    { "name": { "$regex": new RegExp(query.email)} },
-                    { "email": { "$regex": new RegExp(query.email)} }
-                  ]
-            };
+            criteria['$or'] = [
+              { "name": { "$regex": new RegExp(query.email)} },
+              { "email": { "$regex": new RegExp(query.email)} }
+            ];
           }
-
           var page = parseInt(query.page);
           var pageSize = parseInt(query.pageSize);
 

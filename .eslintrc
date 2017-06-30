@@ -1,3 +1,7 @@
 {
-  "extends": "es2015"
+  "extends": "react-app",
+  "globals": {
+      define,
+      require
+  }
 }
