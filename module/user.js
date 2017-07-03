@@ -1,5 +1,5 @@
-var DAO = require('./service/user');
-var PaginationResponse = require('./entity/PaginationResponse');
+var DAO = require('../service/user');
+var PaginationResponse = require('../entity/PaginationResponse');
 
 module.exports = {
     init: function (app) {
