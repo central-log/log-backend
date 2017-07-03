@@ -1,5 +1,9 @@
 var DAO = require('../service/user');
+var Member = require('../service/member');
 var PaginationResponse = require('../entity/PaginationResponse');
+var Mail = require('../service/mail');
+var Password = require('../service/password');
+var md5 = require('md5');
 
 module.exports = {
     init: function (app) {
@@ -55,6 +59,15 @@ module.exports = {
                     res.status(500).send({ errMsg: '用户' + body.email + '已存在' });
                     return;
                 }
+                var password = Password.generate();
+                var mailOptions = {
+                    to: global.AppConfig.env.production ? body.email : global.AppConfig.mail.username, // list of receivers
+                    subject: '欢迎加入日志集成管理系统', // Subject line
+                    // text: '<b>Hello world ?</b>' // html body
+                    html: '<h3>欢迎加入日志集成管理系统</h3><br/><a href="' + global.AppConfig.env.host + '">' + global.AppConfig.env.host + '</a>，您的用户名为【<b>' + body.email + '</b>】，密码为<b>' + password + '</b>' // plain text body
+                };
+
+                Mail.send(mailOptions);
 
                 var timestamp = new Date().getTime();
                 var roleEntity = {
@@ -73,7 +86,18 @@ module.exports = {
                         res.status(500);
                         return;
                     }
-                    res.sendStatus(204);
+
+                    Member.add({
+                        email: body.email,
+                        password: md5(password)
+                    }, function (error) {
+                        if (error) {
+                            res.status(500);
+                            return;
+                        }
+                        res.sendStatus(204);
+                    });
+
                 });
 
             });

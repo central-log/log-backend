@@ -1,6 +1,4 @@
 node_modules/
 .idea/
 .project
-
-
-
+/config/local.properties

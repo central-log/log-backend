@@ -42,22 +42,11 @@ function startAppServer(db) {
     });
 }
 
-function logError() {
-    process.on('uncaughtException', function (err) {
-        console.log(('uncaughtException: ' + err).red);
-    });
-    process.on('unhandledRejection', function (reason, p) {
-    // application specific logging, throwing an error, or other logic here
-        console.log('Unhandled Rejection at: Promise ', p, ' reason: ', reason);
-    });
-}
-
-logError();
-
 var Config = require('./config/config');
 
 Config.init().then(function (configs) {
     global.AppConfig = configs;
+    
     connectMongoDB(startAppServer);
 }).catch(function (defaultPropertiesError, localPropertiesError) {
     throw new Error('Cannot load configurations: ' + defaultPropertiesError + localPropertiesError);
