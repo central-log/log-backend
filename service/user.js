@@ -8,9 +8,9 @@ var deleteMethod = Basic.generateDelete(collectionName);
 var updateOne = Basic.generateUpdateOne(collectionName);
 
 module.exports = {
-  add: add,
-  find: find,
-  findById: findById,
-  delete: deleteMethod,
-  updateOne:updateOne
-}
+    add: add,
+    find: find,
+    findById: findById,
+    delete: deleteMethod,
+    updateOne: updateOne
+};

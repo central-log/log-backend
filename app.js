@@ -40,7 +40,6 @@ function startAppServer(db) {
 
     global.DB = db;
     require('./module/domain').init(app, db);
-    require('./module-role').init(app, db);
     require('./module-group').init(app, db);
     require('./module/user').init(app, db);
     require('./module-login').init(app, db);
@@ -57,8 +56,8 @@ var Config = require('./config/config');
 Config.init().then(function (configs) {
     global.AppConfig = configs;
 
-    connectMongoDB(function () {
-        connectRedis(startAppServer);
+    connectRedis(function () {
+        connectMongoDB(startAppServer);
     });
 }).catch(function (defaultPropertiesError, localPropertiesError) {
     throw new Error('Cannot load configurations: ' + defaultPropertiesError + localPropertiesError);
