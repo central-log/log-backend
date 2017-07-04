@@ -15,8 +15,18 @@ function connectMongoDB(callback) {
 
     MongoClient.connect(url, function (err, db) {
         assert.equal(null, err);
-        console.log('Connected correctly to mongodb server');
+        console.log('Connected correctly to mongodb server ' + url);
         callback && callback(db);
+    });
+}
+
+function connectRedis(callback) {
+    var redis = require('redis');
+    var client = redis.createClient(global.AppConfig.redis.port, global.AppConfig.redis.host);
+
+    client.on('connect', function () {
+        console.info('Connect to redis server ' + global.AppConfig.redis.host + ' on port:' + global.AppConfig.redis.port);
+        callback && callback();
     });
 }
 
@@ -46,8 +56,10 @@ var Config = require('./config/config');
 
 Config.init().then(function (configs) {
     global.AppConfig = configs;
-    
-    connectMongoDB(startAppServer);
+
+    connectMongoDB(function () {
+        connectRedis(startAppServer);
+    });
 }).catch(function (defaultPropertiesError, localPropertiesError) {
     throw new Error('Cannot load configurations: ' + defaultPropertiesError + localPropertiesError);
 });

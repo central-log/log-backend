@@ -10,13 +10,11 @@
   "port": 8081,
   "author": "",
   "license": "ISC",
-  "devDependencies": {
+  "dependencies": {
     "body-parser": "^1.14.1",
     "express": "^4.13.3",
     "express-session": "^1.12.1",
-    "nodemon": "^1.8.1"
-  },
-  "dependencies": {
+    "nodemon": "^1.8.1",
     "babel-preset-es2015": "^6.24.1",
     "eslint": "^3.19.0",
     "eslint-config-es2015": "^1.1.0",
