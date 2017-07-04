@@ -4,6 +4,7 @@ var PaginationResponse = require('../entity/PaginationResponse');
 var Mail = require('../service/mail');
 var Password = require('../service/password');
 var md5 = require('md5');
+var Utils = require('../utils/Utils');
 
 module.exports = {
     init: function (app) {
@@ -60,15 +61,20 @@ module.exports = {
                     return;
                 }
                 var password = Password.generate();
-                var mailOptions = {
-                    to: global.AppConfig.env.production ? body.email : global.AppConfig.mail.username, // list of receivers
+                var to = global.AppConfig.env.production ? body.email : global.AppConfig.mail.username; // list of receivers
+                var url = (Utils.ensureSlash(global.AppConfig.env.host, true) + '#/domain/' + params.domainId);
+                var newMemberMailOptions = {
+                    to: to,
                     subject: '欢迎加入日志集成管理系统', // Subject line
                     // text: '<b>Hello world ?</b>' // html body
-                    html: '<h3>欢迎加入日志集成管理系统</h3><br/><a href="' + global.AppConfig.env.host + '">' + global.AppConfig.env.host + '</a>，您的用户名为【<b>' + body.email + '</b>】，密码为<b>' + password + '</b>' // plain text body
+                    html: '<h3>欢迎加入日志集成管理系统</h3><br/><a href="' + url + '">' + url + '</a>，您的用户名为【<b>' + body.email + '</b>】，密码为<b>' + password + '</b>' // plain text body
                 };
-
-                Mail.send(mailOptions);
-
+                var addMemberMailOptions = {
+                    to: to,
+                    subject: '权限更新－日志集成管理系统', // Subject line
+                  // text: '<b>Hello world ?</b>' // html body
+                    html: '<h3>欢迎加入日志集成管理系统</h3><br/>你可以访问<a href="' + url + '">' + url + '</a>' // plain text body
+                };
                 var timestamp = new Date().getTime();
                 var roleEntity = {
                     name: body.name,
@@ -87,15 +93,29 @@ module.exports = {
                         return;
                     }
 
-                    Member.add({
-                        email: body.email,
-                        password: md5(password)
-                    }, function (error) {
-                        if (error) {
+                    Member.find({
+                        'email': body.email
+                    }, 1, 1, function (_err, _docs, _totalSize) {
+                        if (_err) {
                             res.status(500);
                             return;
                         }
-                        res.sendStatus(204);
+                        if (_totalSize) {
+                            Mail.send(addMemberMailOptions);
+                            res.sendStatus(204);
+                            return;
+                        }
+                        Mail.send(newMemberMailOptions);
+                        Member.add({
+                            email: body.email,
+                            password: md5(password)
+                        }, function (error) {
+                            if (error) {
+                                res.status(500);
+                                return;
+                            }
+                            res.sendStatus(204);
+                        });
                     });
 
                 });
