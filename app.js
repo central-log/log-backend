@@ -9,6 +9,26 @@ var pkg = require('./package.json');
 var DEFAULT_PORT = pkg.port;
 var client;
 
+function connectMysql(callback) {
+
+    var mysql      = require('mysql');
+    var connection = mysql.createConnection({
+        host: global.AppConfig.mysql.host,
+        user: global.AppConfig.mysql.username,
+        password: global.AppConfig.mysql.password,
+        database: global.AppConfig.mysql.database
+    });
+
+    connection.connect(function (err) {
+        if (err) {
+            console.error('error connecting: ' + err.stack);
+            return;
+        }
+        console.log('Connect to mysql: ' + global.AppConfig.mysql.host);
+        callback && callback();
+    });
+}
+
 function connectMongoDB(callback) {
     var MongoClient = require('mongodb').MongoClient;
     var assert = require('assert');
@@ -68,8 +88,10 @@ var Config = require('./config/config');
 Config.init().then(function (configs) {
     global.AppConfig = configs;
 
-    connectRedis(function () {
-        connectMongoDB(startAppServer);
+    connectMysql(function () {
+        connectRedis(function () {
+            connectMongoDB(startAppServer);
+        });
     });
 }).catch(function (defaultPropertiesError, localPropertiesError) {
     throw new Error('Cannot load configurations: ' + defaultPropertiesError + localPropertiesError);
