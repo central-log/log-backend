@@ -36,14 +36,14 @@ module.exports = {
               [domainTableName, criteria, criteria, criteria],
               function (e, result) {
                   if (e) {
-                      res.status(500);
+                      res.sendStatus(500);
                       return;
                   }
                   MService.query(limitSql,
                     [domainTableName, criteria, criteria, criteria],
                     function (err, entity) {
                         if (err) {
-                            res.status(500);
+                            res.sendStatus(500);
                             return;
                         }
                         res.json(new PaginationResponse(entity, page, pageSize, result[0].totalSize));
@@ -81,7 +81,7 @@ module.exports = {
                     if (e.toString().indexOf('Duplicate') !== -1) {
                         res.status(500).send({ errMsg: req.body.name + '已存在' });
                     } else {
-                        res.status(500).send({ errMsg: '服务器异常' });
+                        res.sendStatus(500);
                     }
                     return;
                 }
@@ -91,12 +91,23 @@ module.exports = {
 
 		// Get Domain Detail
         app.get('/domain/:id', function (req, res) {
-            MService.query('SELECT * FROM ?? WHERE ?? = ?', [domainTableName, 'id', req.params.id],
+
+            MService.query('SELECT domain.*, domain_env.id as _id, domain_env.logLevel as _logLevel, domain_env.name as _name, domain_env.email as _email, domain_env.description as _description FROM ?? LEFT JOIN domain_env ON domain_env.domainId=domain.id WHERE ' + domainTableName + '.id = ?',
+              [domainTableName, req.params.id],
               function (e, entity) {
                   if (e) {
-                      res.status(500);
+                      res.sendStatus(500);
                       return;
                   }
+                  entity[0].env = entity.map(function (row) {
+                      return {
+                          id: row._id,
+                          name: row._name,
+                          email: row._email,
+                          description: row._logLevel,
+                          logLevel: row._logLevel
+                      };
+                  });
                   res.json(entity[0] || {});
               });
         });
@@ -108,12 +119,11 @@ module.exports = {
 				|| !req.body.email
 				|| !req.body.description
 				|| !req.body.logLevel
-				|| !req.body.domainId) {
+				|| !req.params.domainId) {
                 res.status(400).send('Bad Request! Required Parameters: name, email, description, logLevel, domainId');
                 return;
             }
 
-            var domainId = req.params.domainId;
             var entity = {
                 id: uuidv1(),
                 name: req.body.name,
@@ -126,44 +136,14 @@ module.exports = {
             MService.query('INSERT INTO ?? SET ?', [domainEnvTableName, entity], function (e) {
                 if (e) {
                     if (e.toString().indexOf('Duplicate') !== -1) {
-                        res.status(500).send({ errMsg: req.body.name + '已存在' });
+                        res.status(500).send({ errMsg: '部署环境' + entity.name + '已存在' });
                     } else {
-                        res.status(500).send({ errMsg: '服务器异常' });
+                        res.sendStatus(500);
                     }
                     return;
                 }
-                res.json(entity);
+                res.sendStatus(204);
             });
-
-            DAO.findById(domainId, function (err, doc) {
-                if (err) {
-                    res.status(500);
-                    return;
-                }
-                var isAlreadyExists = false;
-
-                if (doc.env) {
-                    isAlreadyExists = doc.env.some(function (env) {
-                        return env.name.toLowerCase() === entity.name.toLowerCase();
-                    });
-                }
-                if (isAlreadyExists) {
-                    res.status(500).send({ errMsg: '添加失败：部署环境' + entity.name + '已存在' });
-                    return;
-                }
-                DAO.updateOne({
-                    _id: new ObjectId(domainId)
-                }, {
-                    $set: { env: doc.env ? doc.env.concat(entity) : [entity] }
-                }, function (e) {
-                    if (e) {
-                        res.status(500);
-                        return;
-                    }
-                    res.sendStatus(204);
-                });
-            });
-
         });
 		// 删除部署环境
         app.delete('/domain/:domainId/env/:envId', function (req, res) {
@@ -172,38 +152,16 @@ module.exports = {
             if (!params.domainId || !params.envId) {
                 res.status(400).send('Bad Request! Required Parameters: domainId, envId');
             }
+            var criteria = {
+                id: params.envId
+            };
 
-            DAO.findById(params.domainId, function (err, doc) {
-                if (err) {
-                    res.status(500);
+            MService.query('DELETE FROM ?? WHERE ?', [domainEnvTableName, criteria], function (e) {
+                if (e) {
+                    res.sendStatus(500);
                     return;
                 }
-                var currentEnv, currentIndex;
-
-                if (doc.env) {
-                    currentEnv = doc.env.find(function (env, index) {
-                        currentIndex = index;
-                        return env.id.toLowerCase() === params.envId.toLowerCase();
-                    });
-                }
-                if (!currentEnv) {
-                    res.status(204);
-                    return;
-                }
-
-                doc.env.splice(currentIndex, 1);
-
-                DAO.updateOne({
-                    _id: new ObjectId(params.domainId)
-                }, {
-                    $set: { env: doc.env }
-                }, function (e) {
-                    if (e) {
-                        res.status(500);
-                        return;
-                    }
-                    res.sendStatus(204);
-                });
+                res.sendStatus(204);
             });
         });
 		// 修改部署环境
@@ -217,42 +175,24 @@ module.exports = {
                 res.status(400).send('Bad Request! Required Parameters: name, email, description, logLevel');
                 return;
             }
+            var entity = {
+                email: req.body.email,
+                name: req.body.name,
+                description: req.body.description,
+                logLevel: req.body.logLevel
+            };
 
-            var domainId = req.params.domainId;
-            var envId = req.params.envId;
-
-            DAO.findById(domainId, function (err, doc) {
-                if (err) {
-                    res.status(500);
-                    return;
-                }
-                var currentEnv;
-
-                if (doc.env) {
-                    currentEnv = doc.env.find(function (env) {
-                        return env.id.toLowerCase() === envId.toLowerCase();
-                    });
-                }
-                if (!currentEnv) {
-                    res.status(500).send({ errMsg: '修改失败：部署环境' + req.body.name + '不存在，已被删除！' });
-                    return;
-                }
-                currentEnv.name = req.body.name;
-                currentEnv.email = req.body.email;
-                currentEnv.description = req.body.description;
-                currentEnv.logLevel = req.body.logLevel;
-
-                DAO.updateOne({
-                    _id: new ObjectId(domainId)
-                }, {
-                    $set: { env: doc.env }
-                }, function (e) {
-                    if (e) {
-                        res.status(500);
-                        return;
+            MService.query('UPDATE ?? SET ? WHERE id=?', [domainEnvTableName, entity, req.params.envId], function (e) {
+                if (e) {
+                    if (e.toString().indexOf('Duplicate') !== -1) {
+                        res.status(500).send({ errMsg: '部署环境' + entity.name + '已存在' });
+                    } else {
+                        res.sendStatus(500);
                     }
-                    res.sendStatus(204);
-                });
+
+                    return;
+                }
+                res.sendStatus(204);
             });
 
         });
