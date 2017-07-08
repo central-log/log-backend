@@ -1,10 +1,15 @@
-DROP TABLE if exists role_users
+DROP TABLE if exists role_permission;
+DROP TABLE if exists user_group;
+DROP TABLE if exists role_group;
+DROP TABLE if exists role_users;
+DROP TABLE if exists groups;
+DROP TABLE if exists permissions;
+DROP TABLE if exists roles;
+DROP TABLE if exists env_users;
 
-DROP TABLE if exists env_users
 DROP TABLE if exists users;
 DROP TABLE IF EXISTS domain_env;
 DROP TABLE if exists domain;
-
 
 CREATE TABLE domain(
    id   VARCHAR(36)      NOT NULL,
@@ -97,9 +102,9 @@ ON role_users (userId, roleId);
 alter table role_users
   add constraint role_users_fk_userId foreign key (userId)
   references users (id);
-alter table env_users
-  add constraint env_users_fk_userId foreign key (userId)
-  references users (id);
+alter table role_users
+  add constraint role_users_fk_roleId foreign key (roleId)
+  references roles (id);
 
 CREATE TABLE role_group(
    groupId VARCHAR (36)     NOT NULL,
@@ -107,13 +112,25 @@ CREATE TABLE role_group(
 );
 CREATE UNIQUE INDEX role_group_unique_index
 ON role_group (groupId, roleId);
+alter table role_group
+  add constraint role_group_fk_groupId foreign key (groupId)
+  references groups (id);
+alter table role_group
+  add constraint role_group_fk_roleId foreign key (roleId)
+  references roles (id);
 
 CREATE TABLE user_group(
    userId VARCHAR (36)     NOT NULL,
-	roleId	VARCHAR (36)     NOT NULL
+	groupId	VARCHAR (36)     NOT NULL
 );
 CREATE UNIQUE INDEX user_group_unique_index
-ON user_group (userId, roleId);
+ON user_group (userId, groupId);
+alter table user_group
+  add constraint user_group_fk_groupId foreign key (groupId)
+  references groups (id);
+alter table user_group
+  add constraint user_group_fk_userId foreign key (userId)
+  references users (id);
 
 CREATE TABLE role_permission(
    permissionId VARCHAR (36)     NOT NULL,
@@ -121,6 +138,17 @@ CREATE TABLE role_permission(
 );
 CREATE UNIQUE INDEX role_permission_unique_index
 ON role_permission (permissionId, roleId);
+alter table role_permission
+  add constraint role_permission_fk_permissionId foreign key (permissionId)
+  references permissions (id);
+alter table role_permission
+  add constraint role_permission_roleId foreign key (roleId)
+  references roles (id);
+
+
+
+
+
 
 
 
