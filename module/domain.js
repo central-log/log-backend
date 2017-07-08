@@ -14,20 +14,24 @@ module.exports = {
             if (!params.page || !params.pageSize) {
                 res.status(400).send('Bad Request! Required Parameters: page and pageSize');
             }
+            var page, pageSize;
 
-            var totalCountSql = 'SELECT COUNT(*) as totalSize  FROM ??';
-            var limitSql = 'SELECT * FROM ??';
+            try {
+                page = parseInt(params.page, 10);
+                pageSize = parseInt(params.pageSize, 10);
+            } catch (e) {
+                res.status(400).send('Bad Request! page and pageSize should be Number');
+            }
+            var totalCountSql = 'SELECT COUNT(*) as totalSize  FROM ?? ';
+            var limitSql = 'SELECT * FROM ?? ';
             var criteriaSql;
-
-            var page = parseInt(params.page, 10);
-            var pageSize = parseInt(params.pageSize, 10);
 
             if (params.name) {
                 criteriaSql = 'WHERE name LIKE ? OR description LIKE ? OR email LIKE ?';
                 totalCountSql += criteriaSql;
                 limitSql += criteriaSql;
             }
-            limitSql += ' GROUP BY updatedTime DESC';
+
             var criteria = '%' + params.name + '%';
 
             MService.query(totalCountSql,
@@ -37,6 +41,20 @@ module.exports = {
                       res.sendStatus(500);
                       return;
                   }
+                  var totalSize = result[0].totalSize;
+                  var totalPage = Math.ceil(totalSize / pageSize);
+
+
+                  if (page > totalPage) {
+                      page = totalPage;
+                  }
+
+                  if (page < 1) {
+                      page = 1;
+                  }
+                  var startIndex = (page - 1) * pageSize;
+
+                  limitSql += ' GROUP BY updatedTime DESC LIMIT ' + startIndex + ', ' + pageSize;
                   MService.query(limitSql,
                     [domainTableName, criteria, criteria, criteria],
                     function (err, entity) {
@@ -44,7 +62,7 @@ module.exports = {
                             res.sendStatus(500);
                             return;
                         }
-                        res.json(new PaginationResponse(entity, page, pageSize, result[0].totalSize));
+                        res.json(new PaginationResponse(entity, page, pageSize, totalSize));
                     });
               });
 

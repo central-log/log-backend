@@ -16,8 +16,14 @@ module.exports = {
             if (!query.page || !query.pageSize) {
                 res.status(400).send('Bad Request! Required Parameters: page and pageSize');
             }
-            var page = parseInt(query.page, 10);
-            var pageSize = parseInt(query.pageSize, 10);
+            var page, pageSize;
+
+            try {
+                page = parseInt(query.page, 10);
+                pageSize = parseInt(query.pageSize, 10);
+            } catch (e) {
+                res.status(400).send('Bad Request! page and pageSize should be Number');
+            }
 
             var totalCountSql = 'SELECT COUNT(*) as totalSize';
             var limitSql = 'SELECT _env_user.*,_env_user.userId as email';
@@ -32,7 +38,6 @@ module.exports = {
                 totalCountSql += criteriaSql;
                 limitSql += criteriaSql;
             }
-            limitSql += ' GROUP BY _env_user.updatedTime DESC';
 
             var criteria = '%' + query.email + '%';
             var allCritria = [envUsersTableName, userTableName, criteria, criteria];
@@ -43,12 +48,27 @@ module.exports = {
                       res.sendStatus(500);
                       return;
                   }
+
+                  var totalSize = result[0].totalSize;
+                  var totalPage = Math.ceil(totalSize / pageSize);
+
+
+                  if (page > totalPage) {
+                      page = totalPage;
+                  }
+
+                  if (page < 1) {
+                      page = 1;
+                  }
+                  var startIndex = (page - 1) * pageSize;
+
+                  limitSql += ' GROUP BY _env_user.updatedTime DESC LIMIT ' + startIndex + ', ' + pageSize;
                   MService.query(limitSql, allCritria, function (err, entity) {
                       if (err) {
                           res.sendStatus(500);
                           return;
                       }
-                      res.json(new PaginationResponse(entity, page, pageSize, result[0].totalSize));
+                      res.json(new PaginationResponse(entity, page, pageSize, totalSize));
                   });
               });
 
