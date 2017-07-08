@@ -8,18 +8,20 @@ var RedisStore = require('connect-redis')(session);
 var pkg = require('./package.json');
 var DEFAULT_PORT = pkg.port;
 var client;
+var mysql      = require('mysql');
 
 function connectMysql(callback) {
 
-    var mysql      = require('mysql');
-    var connection = mysql.createConnection({
+
+    var pool = mysql.createPool({
+        connectionLimit: global.AppConfig.mysql.connectionPoolMaxSize,
         host: global.AppConfig.mysql.host,
         user: global.AppConfig.mysql.username,
         password: global.AppConfig.mysql.password,
         database: global.AppConfig.mysql.database
     });
 
-    connection.connect(function (err) {
+    pool.getConnection(function (err) {
         if (err) {
             console.error('error connecting: ' + err.stack);
             return;
@@ -27,6 +29,8 @@ function connectMysql(callback) {
         console.log('Connect to mysql: ' + global.AppConfig.mysql.host);
         callback && callback();
     });
+
+    global.Pool = pool;
 }
 
 function connectMongoDB(callback) {

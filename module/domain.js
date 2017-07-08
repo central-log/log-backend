@@ -1,7 +1,10 @@
 var DAO = require('../service/domain');
+var MService = require('../service/mysql-base');
 var PaginationResponse = require('../entity/PaginationResponse');
 var ObjectId = require('mongodb').ObjectId;
 var uuidv1 = require('uuid/v1');
+var domainTableName = 'domain';
+var domainEnvTableName = 'domain_env';
 
 module.exports = {
     init: function (app) {
@@ -14,23 +17,39 @@ module.exports = {
                 res.status(400).send('Bad Request! Required Parameters: page and pageSize');
             }
 
-            var criteria = {};
+            var totalCountSql = 'SELECT COUNT(*) as totalSize  FROM ??';
+            var limitSql = 'SELECT * FROM ??';
+            var criteriaSql;
+
+            var page = parseInt(params.page, 10);
+            var pageSize = parseInt(params.pageSize, 10);
 
             if (params.name) {
-                criteria = { '$or': [
-											{ 'name': { '$regex': new RegExp(params.name) } },
-											{ 'description': { '$regex': new RegExp(params.name) } },
-											{ 'email': { '$regex': new RegExp(params.name) } }
-                ] };
+                criteriaSql = 'WHERE name LIKE ? OR description LIKE ? OR email LIKE ?';
+                totalCountSql += criteriaSql;
+                limitSql += criteriaSql;
             }
+            limitSql += ' GROUP BY updatedTime';
+            var criteria = '%' + params.name + '%';
 
-            DAO.find(criteria, params.page, params.pageSize, function (err, docs, totalSize) {
-                if (err) {
-                    res.status(500);
-                    return;
-                }
-                return res.json(new PaginationResponse(docs, params.page, params.pageSize, totalSize));
-            });
+            MService.query(totalCountSql,
+              [domainTableName, criteria, criteria, criteria],
+              function (e, result) {
+                  if (e) {
+                      res.status(500);
+                      return;
+                  }
+                  MService.query(limitSql,
+                    [domainTableName, criteria, criteria, criteria],
+                    function (err, entity) {
+                        if (err) {
+                            res.status(500);
+                            return;
+                        }
+                        res.json(new PaginationResponse(entity, page, pageSize, result[0].totalSize));
+                    });
+              });
+
         });
 		// 接入Domain
         app.put('/domain', function (req, res) {
@@ -44,50 +63,42 @@ module.exports = {
                 return;
             }
 
-            DAO.find({
-                'name': req.body.name
-            }, 1, 1, function (err, docs, totalSize) {
-                if (err) {
-                    res.status(500);
-                    return;
-                }
-                if (totalSize) {
-                    res.status(500).send({ errMsg: req.body.name + '已存在' });
-                    return;
-                }
+            var timestamp = new Date().getTime();
+            var entity = {
+                id: uuidv1(),
+                name: req.body.name,
+                description: req.body.description,
+                email: req.body.email,
+                endDateTime: req.body.endDateTime,
+                starDateTime: req.body.starDateTime,
+                createdTime: timestamp,
+                updatedTime: timestamp,
+                enabled: true
+            };
 
-                var timestamp = new Date().getTime();
-                var entity = {
-                    name: req.body.name,
-                    description: req.body.description,
-                    email: req.body.email,
-                    endDateTime: req.body.endDateTime,
-                    starDateTime: req.body.starDateTime,
-                    createdTime: timestamp,
-                    updatedTime: timestamp,
-                    enabled: true
-                };
-
-                DAO.add(entity, function (e) {
-                    if (e) {
-                        res.status(500);
-                        return;
+            MService.query('INSERT INTO ?? SET ?', [domainTableName, entity], function (e) {
+                if (e) {
+                    if (e.toString().indexOf('Duplicate') !== -1) {
+                        res.status(500).send({ errMsg: req.body.name + '已存在' });
+                    } else {
+                        res.status(500).send({ errMsg: '服务器异常' });
                     }
-                    res.json(entity);
-                });
-
+                    return;
+                }
+                res.json(entity);
             });
         });
 
 		// Get Domain Detail
         app.get('/domain/:id', function (req, res) {
-            DAO.findById(req.params.id, function (err, doc) {
-                if (err) {
-                    res.status(500);
-                    return;
-                }
-                res.json(doc ? doc : {});
-            });
+            MService.query('SELECT * FROM ?? WHERE ?? = ?', [domainTableName, 'id', req.params.id],
+              function (e, entity) {
+                  if (e) {
+                      res.status(500);
+                      return;
+                  }
+                  res.json(entity[0] || {});
+              });
         });
 
 		// 添加部署环境
@@ -102,14 +113,27 @@ module.exports = {
                 return;
             }
 
-            var domainId = req.body.domainId;
+            var domainId = req.params.domainId;
             var entity = {
                 id: uuidv1(),
                 name: req.body.name,
                 email: req.body.email,
                 description: req.body.description,
-                logLevel: req.body.logLevel
+                logLevel: req.body.logLevel,
+                domainId: req.params.domainId
             };
+
+            MService.query('INSERT INTO ?? SET ?', [domainEnvTableName, entity], function (e) {
+                if (e) {
+                    if (e.toString().indexOf('Duplicate') !== -1) {
+                        res.status(500).send({ errMsg: req.body.name + '已存在' });
+                    } else {
+                        res.status(500).send({ errMsg: '服务器异常' });
+                    }
+                    return;
+                }
+                res.json(entity);
+            });
 
             DAO.findById(domainId, function (err, doc) {
                 if (err) {
