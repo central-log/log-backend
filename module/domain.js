@@ -27,7 +27,7 @@ module.exports = {
                 totalCountSql += criteriaSql;
                 limitSql += criteriaSql;
             }
-            limitSql += ' GROUP BY updatedTime';
+            limitSql += ' GROUP BY updatedTime DESC';
             var criteria = '%' + params.name + '%';
 
             MService.query(totalCountSql,
@@ -90,22 +90,24 @@ module.exports = {
 		// Get Domain Detail
         app.get('/domain/:id', function (req, res) {
 
-            MService.query('SELECT domain.*, domain_env.id as _id, domain_env.logLevel as _logLevel, domain_env.name as _name, domain_env.email as _email, domain_env.description as _description FROM ?? LEFT JOIN domain_env ON domain_env.domainId=domain.id WHERE ' + domainTableName + '.id = ?',
+            MService.query('SELECT domain.*, domain_env.id as _id, domain_env.logLevel as _logLevel, domain_env.name as _name, domain_env.email as _email, domain_env.description as _description FROM ?? LEFT JOIN domain_env ON domain_env.domainId=domain.id WHERE ' + domainTableName + '.id = ? ORDER BY domain_env.updatedTime DESC',
               [domainTableName, req.params.id],
               function (e, entity) {
                   if (e) {
                       res.sendStatus(500);
                       return;
                   }
-                  entity[0].env = entity.map(function (row) {
-                      return {
-                          id: row._id,
-                          name: row._name,
-                          email: row._email,
-                          description: row._logLevel,
-                          logLevel: row._logLevel
-                      };
-                  });
+                  if (entity[0]._id) {
+                      entity[0].env = entity.map(function (row) {
+                          return {
+                              id: row._id,
+                              name: row._name,
+                              email: row._email,
+                              description: row._description,
+                              logLevel: row._logLevel
+                          };
+                      });
+                  }
                   res.json(entity[0] || {});
               });
         });
@@ -121,14 +123,16 @@ module.exports = {
                 res.status(400).send('Bad Request! Required Parameters: name, email, description, logLevel, domainId');
                 return;
             }
-
+            var timestamp = new Date().getTime();
             var entity = {
                 id: uuidv1(),
                 name: req.body.name,
                 email: req.body.email,
                 description: req.body.description,
                 logLevel: req.body.logLevel,
-                domainId: req.params.domainId
+                domainId: req.params.domainId,
+                createdTime: timestamp,
+                updatedTime: timestamp
             };
 
             MService.query('INSERT INTO ?? SET ?', [domainEnvTableName, entity], function (e) {
@@ -177,7 +181,8 @@ module.exports = {
                 email: req.body.email,
                 name: req.body.name,
                 description: req.body.description,
-                logLevel: req.body.logLevel
+                logLevel: req.body.logLevel,
+                updatedTime: new Date().getTime()
             };
 
             MService.query('UPDATE ?? SET ? WHERE id=?', [domainEnvTableName, entity, req.params.envId], function (e) {

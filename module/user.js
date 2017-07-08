@@ -1,11 +1,8 @@
-var DAO = require('../service/user');
 var MService = require('../service/mysql-base');
-var Member = require('../service/member');
 var PaginationResponse = require('../entity/PaginationResponse');
 var Mail = require('../service/mail');
 var Password = require('../service/password');
 var md5 = require('md5');
-var uuidv1 = require('uuid/v1');
 var Utils = require('../utils/Utils');
 var userTableName = 'users';
 var envUsersTableName = 'env_users';
@@ -23,19 +20,19 @@ module.exports = {
             var pageSize = parseInt(query.pageSize, 10);
 
             var totalCountSql = 'SELECT COUNT(*) as totalSize';
-            var limitSql = 'SELECT _env_user.*,_env_user.userId as email, _users.name';
+            var limitSql = 'SELECT _env_user.*,_env_user.userId as email';
             var joinSql = ' FROM ?? as _env_user LEFT JOIN ?? as _users ON _users.email=_env_user.userId';
 
             totalCountSql += joinSql;
             limitSql += joinSql;
 
-            var criteriaSql = ' WHERE _users.name LIKE ? OR _users.email LIKE ?';
+            var criteriaSql = ' WHERE _env_user.name LIKE ? OR _users.email LIKE ?';
 
             if (query.email) {
                 totalCountSql += criteriaSql;
                 limitSql += criteriaSql;
             }
-            limitSql += ' GROUP BY _env_user.updatedTime';
+            limitSql += ' GROUP BY _env_user.updatedTime DESC';
 
             var criteria = '%' + query.email + '%';
             var allCritria = [envUsersTableName, userTableName, criteria, criteria];
@@ -69,9 +66,8 @@ module.exports = {
 
             var password = Password.generate();
             var entity = {
-                name: body.name,
                 email: body.email,
-                password: password
+                password: md5(password)
             };
 
             function insertEnvUser(connection, response, isNewUser) {
@@ -79,6 +75,7 @@ module.exports = {
                 var envUserMap = {
                     userId: entity.email,
                     envId: params.env,
+                    name: body.name,
                     createdTime: timestamp,
                     updatedTime: timestamp,
                     userType: body.userType,
@@ -103,7 +100,11 @@ module.exports = {
                         connection.rollback(function () {
                             connection.release();
                         });
-                        response.sendStatus(500);
+                        if (e.toString().indexOf('Duplicate') !== -1) {
+                            res.status(500).send({ errMsg: '邮箱' + envUserMap.userId + '已存在' });
+                        } else {
+                            response.sendStatus(500);
+                        }
                         return;
                     }
                     Mail.send(isNewUser ? newMemberMailOptions : addMemberMailOptions);
@@ -132,14 +133,13 @@ module.exports = {
         });
 
         app.delete('/domain/:domainId/env/:env/user', function (req, res) {
-            var params = req.params;
             var query = req.query;
 
-            if (!params.domainId || !params.env || !query.email) {
-                res.status(400).send('Bad Request! Required Parameters: domainId, env and email');
+            if (!query.email) {
+                res.status(400).send('Bad Request! Required Parameters: email');
             }
 
-            MService.query('DELETE FROM ?? WHERE ?', [domainEnvTableName, criteria], function (e) {
+            MService.query('DELETE FROM ?? WHERE userId=?', [envUsersTableName, query.email], function (e) {
                 if (e) {
                     res.sendStatus(500);
                     return;
@@ -147,59 +147,31 @@ module.exports = {
                 res.sendStatus(204);
             });
 
-            DAO.delete({
-                'domainId': params.domainId,
-                'env': params.env,
-                'email': query.email
-            }, function (err) {
-                if (err) {
-                    res.sendStatus(500);
-                    return;
-                }
-                res.sendStatus(204);
-            });
         });
 
         app.post('/domain/:domainId/env/:env/user', function (req, res) {
-            var params = req.params;
             var body = req.body;
 
-            if (!params.domainId || !params.env || !body.name || !body.email || !body.status || !body.userType) {
-                res.status(400).send('Bad Request! Required Parameters: domainId, env, userId, name, status, userType and email');
+            if (!body.name || !body.email || !body.status || !body.userType) {
+                res.status(400).send('Bad Request! Required Parameters: userId, name, status, userType and email');
             }
 
-            var criteria = {
-                'domainId': params.domainId,
-                'env': params.env,
-                'email': body.email
+            var entity = {
+                name: body.name,
+                status: body.status,
+                userType: body.userType,
+                updatedTime: new Date().getTime()
             };
 
-            DAO.find(criteria, 1, 1, function (err, docs, totalSize) {
-                if (err) {
-                    res.sendStatus(500);
-                    return;
-                }
-                if (!totalSize) {
-                    res.status(500).send({ errMsg: '用户' + body.email + '不存在' });
-                    return;
-                }
-
-                DAO.updateOne(criteria, {
-                    $set: {
-                        name: body.name,
-                        lastUpdate: new Date().getTime(),
-                        status: body.status,
-                        userType: body.userType
-                    }
-                }, function (e) {
-                    if (e) {
-                        res.sendStatus(500);
-                        return;
-                    }
-                    res.sendStatus(204);
-                });
-
-            });
+            MService.query('UPDATE ?? SET ? WHERE userId=? AND envId=?',
+              [envUsersTableName, entity, body.email, req.params.env],
+              function (e) {
+                  if (e) {
+                      res.sendStatus(500);
+                      return;
+                  }
+                  res.sendStatus(204);
+              });
         });
 
     }

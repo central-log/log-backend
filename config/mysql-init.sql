@@ -32,6 +32,8 @@ CREATE TABLE domain_env(
 	description VARCHAR (100)     NOT NULL,
 	email VARCHAR (500)     NOT NULL,
 	domainId VARCHAR (40) NOT NULL,
+  createdTime long     NOT NULL,
+  updatedTime  long  NOT NULL,
    PRIMARY KEY (ID)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -42,13 +44,13 @@ CREATE UNIQUE INDEX domain_env_unique_index
 ON domain_env (name, domainId);
 
 CREATE TABLE users(
-   name VARCHAR (40)     NOT NULL,
 	email VARCHAR (60)     NOT NULL,
 	password VARCHAR (32)     NOT NULL,
    PRIMARY KEY (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE env_users(
+    name VARCHAR (40)     NOT NULL,
    userId VARCHAR (40)     NOT NULL,
 	envId	 VARCHAR (40)     NOT NULL,
   createdTime long     NOT NULL,
