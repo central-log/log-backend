@@ -51,7 +51,9 @@ CREATE TABLE users(
 
 CREATE TABLE env_users(
    userId VARCHAR (40)     NOT NULL,
-	envId	 VARCHAR (40)     NOT NULL
+	envId	 VARCHAR (40)     NOT NULL,
+  createdTime long     NOT NULL,
+  updatedTime  long NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE UNIQUE INDEX env_users_unique_index
@@ -94,7 +96,9 @@ CREATE TABLE groups(
 
 CREATE TABLE role_users(
    userId VARCHAR (40)     NOT NULL,
-	roleId	 VARCHAR (40)     NOT NULL
+	roleId	 VARCHAR (40)     NOT NULL,
+  createdTime long     NOT NULL,
+  updatedTime  long NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE UNIQUE INDEX role_users_unique_index
@@ -108,7 +112,9 @@ alter table role_users
 
 CREATE TABLE role_group(
    groupId VARCHAR (40)     NOT NULL,
-	roleId	 VARCHAR (40)     NOT NULL
+	roleId	 VARCHAR (40)     NOT NULL,
+  createdTime long     NOT NULL,
+  updatedTime  long NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE UNIQUE INDEX role_group_unique_index
@@ -122,6 +128,8 @@ alter table role_group
 
 CREATE TABLE user_group(
    userId VARCHAR (40)     NOT NULL,
+   createdTime long     NOT NULL,
+   updatedTime  long NOT NULL,
 	groupId	 VARCHAR (40)     NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

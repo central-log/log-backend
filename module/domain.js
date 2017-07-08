@@ -1,7 +1,5 @@
-var DAO = require('../service/domain');
 var MService = require('../service/mysql-base');
 var PaginationResponse = require('../entity/PaginationResponse');
-var ObjectId = require('mongodb').ObjectId;
 var uuidv1 = require('uuid/v1');
 var domainTableName = 'domain';
 var domainEnvTableName = 'domain_env';

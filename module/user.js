@@ -1,10 +1,13 @@
 var DAO = require('../service/user');
+var MService = require('../service/mysql-base');
 var Member = require('../service/member');
 var PaginationResponse = require('../entity/PaginationResponse');
 var Mail = require('../service/mail');
 var Password = require('../service/password');
 var md5 = require('md5');
 var Utils = require('../utils/Utils');
+var userTableName = 'users';
+var envUsersTableName = 'env_users';
 
 module.exports = {
     init: function (app) {
@@ -15,28 +18,42 @@ module.exports = {
             if (!params.domainId || !params.env || !query.page || !query.pageSize) {
                 res.status(400).send('Bad Request! Required Parameters: domainId, env, page and pageSize');
             }
-
-            var criteria = {
-                'domainId': params.domainId,
-                'env': params.env
-            };
-
-            if (query.email) {
-                criteria.$or = [
-              { 'name': { '$regex': new RegExp(query.email) } },
-              { 'email': { '$regex': new RegExp(query.email) } }
-                ];
-            }
             var page = parseInt(query.page, 10);
             var pageSize = parseInt(query.pageSize, 10);
 
-            DAO.find(criteria, page, pageSize, function (err, docs, totalSize) {
-                if (err) {
-                    res.status(500);
-                    return;
-                }
-                return res.json(new PaginationResponse(docs, page, pageSize, totalSize));
-            });
+            var totalCountSql = 'SELECT COUNT(*) as totalSize';
+            var limitSql = 'SELECT _env_user.*';
+            var joinSql = ' FROM ?? as _env_user LEFT JOIN ?? as _users ON _users.id=_env_user.userId';
+
+            totalCountSql += joinSql;
+            limitSql += joinSql;
+
+            var criteriaSql = ' WHERE _users.name LIKE ? OR _users.email LIKE ?';
+
+            if (params.email) {
+                totalCountSql += criteriaSql;
+                limitSql += criteriaSql;
+            }
+            limitSql += ' GROUP BY _env_user.updatedTime';
+
+            var criteria = '%' + params.name + '%';
+            var allCritria = [envUsersTableName, userTableName, criteria, criteria];
+
+            MService.query(totalCountSql, allCritria,
+              function (e, result) {
+                  if (e) {
+                      res.sendStatus(500);
+                      return;
+                  }
+                  MService.query(limitSql, allCritria, function (err, entity) {
+                      if (err) {
+                          res.sendStatus(500);
+                          return;
+                      }
+                      res.json(new PaginationResponse(entity, page, pageSize, result[0].totalSize));
+                  });
+              });
+
         });
 
         app.put('/domain/:domainId/env/:env/user', function (req, res) {
@@ -53,7 +70,7 @@ module.exports = {
                 'email': body.email
             }, 1, 1, function (err, docs, totalSize) {
                 if (err) {
-                    res.status(500);
+                    res.sendStatus(500);
                     return;
                 }
                 if (totalSize) {
@@ -89,7 +106,7 @@ module.exports = {
 
                 DAO.add(roleEntity, function (e) {
                     if (e) {
-                        res.status(500);
+                        res.sendStatus(500);
                         return;
                     }
 
@@ -97,7 +114,7 @@ module.exports = {
                         'email': body.email
                     }, 1, 1, function (_err, _docs, _totalSize) {
                         if (_err) {
-                            res.status(500);
+                            res.sendStatus(500);
                             return;
                         }
                         if (_totalSize) {
@@ -111,7 +128,7 @@ module.exports = {
                             password: md5(password)
                         }, function (error) {
                             if (error) {
-                                res.status(500);
+                                res.sendStatus(500);
                                 return;
                             }
                             res.sendStatus(204);
@@ -137,7 +154,7 @@ module.exports = {
                 'email': query.email
             }, function (err) {
                 if (err) {
-                    res.status(500);
+                    res.sendStatus(500);
                     return;
                 }
                 res.sendStatus(204);
@@ -160,7 +177,7 @@ module.exports = {
 
             DAO.find(criteria, 1, 1, function (err, docs, totalSize) {
                 if (err) {
-                    res.status(500);
+                    res.sendStatus(500);
                     return;
                 }
                 if (!totalSize) {
@@ -177,7 +194,7 @@ module.exports = {
                     }
                 }, function (e) {
                     if (e) {
-                        res.status(500);
+                        res.sendStatus(500);
                         return;
                     }
                     res.sendStatus(204);
