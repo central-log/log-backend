@@ -6,8 +6,8 @@ DROP TABLE if exists groups;
 DROP TABLE if exists permissions;
 DROP TABLE if exists roles;
 DROP TABLE if exists env_users;
-
 DROP TABLE if exists users;
+
 DROP TABLE IF EXISTS domain_env;
 DROP TABLE if exists domain;
 
@@ -42,18 +42,19 @@ CREATE UNIQUE INDEX domain_env_unique_index
 ON domain_env (name, domainId);
 
 CREATE TABLE users(
-   id   VARCHAR (40)      NOT NULL ,
    name VARCHAR (40)     NOT NULL,
-	email VARCHAR (60)     NOT NULL UNIQUE,
+	email VARCHAR (60)     NOT NULL,
 	password VARCHAR (32)     NOT NULL,
-   PRIMARY KEY (ID)
+   PRIMARY KEY (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE env_users(
    userId VARCHAR (40)     NOT NULL,
 	envId	 VARCHAR (40)     NOT NULL,
   createdTime long     NOT NULL,
-  updatedTime  long NOT NULL
+  updatedTime  long NOT NULL,
+  userType VARCHAR (40) NOT NULL,
+  status VARCHAR (40) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE UNIQUE INDEX env_users_unique_index
@@ -61,7 +62,7 @@ ON env_users (userId, envId);
 
 alter table env_users
   add constraint env_users_fk_userId foreign key (userId)
-  references users (id);
+  references users (email);
 alter table env_users
   add constraint env_users_fk_envId foreign key (envId)
   references domain_env (id);
@@ -105,7 +106,7 @@ CREATE UNIQUE INDEX role_users_unique_index
 ON role_users (userId, roleId);
 alter table role_users
   add constraint role_users_fk_userId foreign key (userId)
-  references users (id);
+  references users (email);
 alter table role_users
   add constraint role_users_fk_roleId foreign key (roleId)
   references roles (id);
@@ -140,7 +141,7 @@ alter table user_group
   references groups (id);
 alter table user_group
   add constraint user_group_fk_userId foreign key (userId)
-  references users (id);
+  references users (email);
 
 CREATE TABLE role_permission(
    permissionId VARCHAR (40)     NOT NULL,
