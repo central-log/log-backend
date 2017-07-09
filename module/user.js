@@ -26,7 +26,7 @@ module.exports = {
             }
 
             var totalCountSql = 'SELECT COUNT(*) as totalSize';
-            var limitSql = 'SELECT *';
+            var limitSql = 'SELECT _user.name,_user.email,_user.createdTime,_user.updatedTime';
             var joinSql = ' FROM ?? as _user ';
 
             totalCountSql += joinSql;
