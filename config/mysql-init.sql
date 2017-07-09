@@ -83,10 +83,12 @@ CREATE TABLE roles(
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE permissions(
-   id   VARCHAR (40)      NOT NULL ,
+   id   int      NOT NULL AUTO_INCREMENT,
    name VARCHAR (40)     NOT NULL UNIQUE,
-	url VARCHAR (500)    NOT NULL,
-	method VARCHAR (20)     NOT NULL,
+   url VARCHAR (200),
+   method VARCHAR (10),
+	description VARCHAR (50)     NOT NULL,
+  type VARCHAR (40) NOT NULL,
    PRIMARY KEY (ID)
 )ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -149,8 +151,9 @@ alter table user_group
   references users (email) ON DELETE CASCADE;
 
 CREATE TABLE role_permission(
-   permissionId VARCHAR (40)     NOT NULL,
-	roleId	 VARCHAR (40)    NOT NULL
+   permissionId int     NOT NULL,
+	roleId	 VARCHAR (40)    NOT NULL,
+  updatedTime  long NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE UNIQUE INDEX role_permission_unique_index

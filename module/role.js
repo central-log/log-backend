@@ -89,6 +89,20 @@ module.exports = {
                   });
         });
 
+        // Get Domain Detail
+        app.get('/role/:id/permission', function (req, res) {
+
+            MService.query('SELECT permissions.* FROM role_permission LEFT JOIN permissions ON permissions.id=role_permission.permissionId WHERE role_permission.roleId=? AND permissions.name LIKE ? ORDER BY role_permission.updatedTime',
+                  [req.params.id, '%' + req.query.name + '%'],
+                  function (e, entity) {
+                      if (e) {
+                          res.status(500).send(e);
+                          return;
+                      }
+                      res.json(entity || {});
+                  });
+        });
+
         app.put('/role', function (req, res) {
             var body = req.body;
 
