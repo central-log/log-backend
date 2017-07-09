@@ -24,6 +24,12 @@ module.exports = {
             } catch (e) {
                 res.status(400).send('Bad Request! page and pageSize should be Number');
             }
+            if (isNaN(page)) {
+                page = 1;
+            }
+            if (isNaN(pageSize)) {
+                pageSize = 50;
+            }
 
             var totalCountSql = 'SELECT COUNT(*) as totalSize';
             var limitSql = 'SELECT _user.name,_user.email,_user.createdTime,_user.updatedTime';
@@ -72,6 +78,20 @@ module.exports = {
                   });
               });
 
+        });
+
+        // Get Domain Detail
+        app.get('/user/detail/:id', function (req, res) {
+
+            MService.query('SELECT name,email,createdTime,updatedTime FROM ?? WHERE email=?',
+                  [userTableName, req.params.id],
+                  function (e, entity) {
+                      if (e) {
+                          res.sendStatus(500);
+                          return;
+                      }
+                      res.json(entity[0] || {});
+                  });
         });
 
         app.put('/user', function (req, res) {

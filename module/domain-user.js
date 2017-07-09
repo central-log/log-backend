@@ -24,6 +24,12 @@ module.exports = {
             } catch (e) {
                 res.status(400).send('Bad Request! page and pageSize should be Number');
             }
+            if (isNaN(page)) {
+                page = 1;
+            }
+            if (isNaN(pageSize)) {
+                pageSize = 50;
+            }
 
             var totalCountSql = 'SELECT COUNT(*) as totalSize';
             var limitSql = 'SELECT _env_user.*,_env_user.userId as email';
@@ -60,6 +66,7 @@ module.exports = {
                   if (page < 1) {
                       page = 1;
                   }
+
                   var startIndex = (page - 1) * pageSize;
 
                   limitSql += ' GROUP BY _env_user.updatedTime DESC LIMIT ' + startIndex + ', ' + pageSize;

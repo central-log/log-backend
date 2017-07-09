@@ -22,6 +22,13 @@ module.exports = {
             } catch (e) {
                 res.status(400).send('Bad Request! page and pageSize should be Number');
             }
+            if (isNaN(page)) {
+                page = 1;
+            }
+            if (isNaN(pageSize)) {
+                pageSize = 50;
+            }
+
             var totalCountSql = 'SELECT COUNT(*) as totalSize  FROM ?? ';
             var limitSql = 'SELECT * FROM ?? ';
             var criteriaSql;
