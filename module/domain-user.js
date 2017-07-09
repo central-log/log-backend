@@ -10,7 +10,7 @@ var configHost = Utils.ensureSlash(global.AppConfig.env.host, true);
 
 module.exports = {
     init: function (app) {
-        app.get('/user', function (req, res) {
+        app.get('/domain/:domainId/env/:env/user', function (req, res) {
             var query = req.query;
 
             if (!query.page || !query.pageSize) {
@@ -26,13 +26,13 @@ module.exports = {
             }
 
             var totalCountSql = 'SELECT COUNT(*) as totalSize';
-            var limitSql = 'SELECT *';
-            var joinSql = ' FROM ?? as _user ';
+            var limitSql = 'SELECT _env_user.*,_env_user.userId as email';
+            var joinSql = ' FROM ?? as _env_user LEFT JOIN ?? as _users ON _users.email=_env_user.userId';
 
             totalCountSql += joinSql;
             limitSql += joinSql;
 
-            var criteriaSql = ' WHERE _user.name LIKE ? OR _user.email LIKE ?';
+            var criteriaSql = ' WHERE _env_user.name LIKE ? OR _users.email LIKE ?';
 
             if (query.email) {
                 totalCountSql += criteriaSql;
@@ -40,7 +40,7 @@ module.exports = {
             }
 
             var criteria = '%' + query.email + '%';
-            var allCritria = [userTableName, criteria, criteria];
+            var allCritria = [envUsersTableName, userTableName, criteria, criteria];
 
             MService.query(totalCountSql, allCritria,
               function (e, result) {
@@ -62,7 +62,7 @@ module.exports = {
                   }
                   var startIndex = (page - 1) * pageSize;
 
-                  limitSql += ' GROUP BY _user.updatedTime DESC LIMIT ' + startIndex + ', ' + pageSize;
+                  limitSql += ' GROUP BY _env_user.updatedTime DESC LIMIT ' + startIndex + ', ' + pageSize;
                   MService.query(limitSql, allCritria, function (err, entity) {
                       if (err) {
                           res.sendStatus(500);
@@ -84,14 +84,17 @@ module.exports = {
             var to = global.AppConfig.env.production ? body.email : global.AppConfig.mail.username; // list of receivers
             var url = (configHost + '#/domain/' + params.domainId);
 
+            var timestamp = new Date().getTime();
             var password = Password.generate();
             var entity = {
+                name: body.name,
+                createdTime: timestamp,
+                updatedTime: timestamp,
                 email: body.email,
                 password: md5(password)
             };
 
             function insertEnvUser(connection, response, isNewUser) {
-                var timestamp = new Date().getTime();
                 var envUserMap = {
                     userId: entity.email,
                     envId: params.env,
