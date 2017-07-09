@@ -39,7 +39,7 @@ CREATE TABLE domain_env(
 
 alter table domain_env
   add constraint domain_env_fk_domainId foreign key (domainId)
-  references domain (id);
+  references domain (id) ON DELETE CASCADE;
 CREATE UNIQUE INDEX domain_env_unique_index
 ON domain_env (name, domainId);
 
@@ -67,10 +67,10 @@ ON env_users (userId, envId);
 
 alter table env_users
   add constraint env_users_fk_userId foreign key (userId)
-  references users (email);
+  references users (email) ON DELETE CASCADE;
 alter table env_users
   add constraint env_users_fk_envId foreign key (envId)
-  references domain_env (id);
+  references domain_env (id) ON DELETE CASCADE;
 
 CREATE TABLE roles(
    id   VARCHAR (40)      NOT NULL ,
@@ -111,10 +111,10 @@ CREATE UNIQUE INDEX role_users_unique_index
 ON role_users (userId, roleId);
 alter table role_users
   add constraint role_users_fk_userId foreign key (userId)
-  references users (email);
+  references users (email) ON DELETE CASCADE;
 alter table role_users
   add constraint role_users_fk_roleId foreign key (roleId)
-  references roles (id);
+  references roles (id) ON DELETE CASCADE;
 
 CREATE TABLE role_group(
    groupId VARCHAR (40)     NOT NULL,
@@ -127,10 +127,10 @@ CREATE UNIQUE INDEX role_group_unique_index
 ON role_group (groupId, roleId);
 alter table role_group
   add constraint role_group_fk_groupId foreign key (groupId)
-  references groups (id);
+  references groups (id) ON DELETE CASCADE;
 alter table role_group
   add constraint role_group_fk_roleId foreign key (roleId)
-  references roles (id);
+  references roles (id) ON DELETE CASCADE;
 
 CREATE TABLE user_group(
    userId VARCHAR (40)     NOT NULL,
@@ -143,10 +143,10 @@ CREATE UNIQUE INDEX user_group_unique_index
 ON user_group (userId, groupId);
 alter table user_group
   add constraint user_group_fk_groupId foreign key (groupId)
-  references groups (id);
+  references groups (id) ON DELETE CASCADE;
 alter table user_group
   add constraint user_group_fk_userId foreign key (userId)
-  references users (email);
+  references users (email) ON DELETE CASCADE;
 
 CREATE TABLE role_permission(
    permissionId VARCHAR (40)     NOT NULL,
@@ -157,7 +157,7 @@ CREATE UNIQUE INDEX role_permission_unique_index
 ON role_permission (permissionId, roleId);
 alter table role_permission
   add constraint role_permission_fk_permissionId foreign key (permissionId)
-  references permissions (id);
+  references permissions (id) ON DELETE CASCADE;
 alter table role_permission
   add constraint role_permission_roleId foreign key (roleId)
-  references roles (id);
+  references roles (id) ON DELETE CASCADE;
