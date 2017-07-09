@@ -74,82 +74,45 @@ module.exports = {
 
         });
 
-        app.put('/domain/:domainId/env/:env/user', function (req, res) {
-            var params = req.params;
+        app.put('/user', function (req, res) {
             var body = req.body;
 
-            if (!body.name || !body.email || !body.status || !body.userType) {
-                res.status(400).send('Bad Request! Required Parameters:name, status, userType and email');
+            if (!body.name || !body.email) {
+                res.status(400).send('Bad Request! Required Parameters:name, and email');
             }
             var to = global.AppConfig.env.production ? body.email : global.AppConfig.mail.username; // list of receivers
-            var url = (configHost + '#/domain/' + params.domainId);
+            var url = configHost;
 
             var password = Password.generate();
+            var timestamp = new Date().getTime();
             var entity = {
+                name: body.name,
+                createdTime: timestamp,
+                updatedTime: timestamp,
                 email: body.email,
                 password: md5(password)
             };
 
-            function insertEnvUser(connection, response, isNewUser) {
-                var timestamp = new Date().getTime();
-                var envUserMap = {
-                    userId: entity.email,
-                    envId: params.env,
-                    name: body.name,
-                    createdTime: timestamp,
-                    updatedTime: timestamp,
-                    userType: body.userType,
-                    status: body.status
-                };
+            var newMemberMailOptions = {
+                to: to,
+                subject: '欢迎加入日志集成管理系统', // Subject line
+                // text: '<b>Hello world ?</b>' // html body
+                html: '<h3>欢迎加入日志集成管理系统</h3><br/><a href="' + url + '">' + url + '</a>，您的用户名为【<b>' + body.email + '</b>】，密码为<b>' + password + '</b>' // plain text body
+            };
 
-                var newMemberMailOptions = {
-                    to: to,
-                    subject: '欢迎加入日志集成管理系统', // Subject line
-                    // text: '<b>Hello world ?</b>' // html body
-                    html: '<h3>欢迎加入日志集成管理系统</h3><br/><a href="' + url + '">' + url + '</a>，您的用户名为【<b>' + body.email + '</b>】，密码为<b>' + password + '</b>' // plain text body
-                };
-                var addMemberMailOptions = {
-                    to: to,
-                    subject: '权限更新－日志集成管理系统', // Subject line
-                  // text: '<b>Hello world ?</b>' // html body
-                    html: '<h3>欢迎加入日志集成管理系统</h3><br/>你可以访问<a href="' + url + '">' + url + '</a>' // plain text body
-                };
-
-                connection.query('INSERT INTO ?? SET ?', [envUsersTableName, envUserMap], function (e) {
-                    if (e) {
-                        connection.rollback(function () {
-                            connection.release();
-                        });
-                        if (e.toString().indexOf('Duplicate') !== -1) {
-                            res.status(500).send({ errMsg: '邮箱' + envUserMap.userId + '已存在' });
-                        } else {
-                            response.sendStatus(500);
-                        }
-                        return;
+            MService.query('INSERT INTO ?? SET ?', [userTableName, entity], function (e) {
+                if (e) {
+                    if (e.toString().indexOf('Duplicate') !== -1) {
+                        res.status(500).send({ errMsg: '用户' + entity.email + '已存在' });
+                    } else {
+                        res.sendStatus(500);
                     }
-                    Mail.send(isNewUser ? newMemberMailOptions : addMemberMailOptions);
-                    connection.commit(function (err) {
-                        connection.release();
-                        if (err) {
-                            response.sendStatus(500);
-                        }
-                        response.sendStatus(204);
-                    });
-                });
-            }
-            MService.transaction('INSERT INTO ?? SET ?', [userTableName, entity],
-              function (e, connection) {
-                  if (e) {
-                      if (e.toString().indexOf('Duplicate') !== -1) {
-                          insertEnvUser(connection, res, false);
-                      } else {
-                          connection.release();
-                          res.sendStatus(500);
-                      }
-                      return;
-                  }
-                  insertEnvUser(connection, res, true);
-              });
+                    return;
+                }
+                Mail.send(newMemberMailOptions);
+                delete entity.password;
+                res.json(entity);
+            });
         });
 
         app.delete('/domain/:domainId/env/:env/user', function (req, res) {

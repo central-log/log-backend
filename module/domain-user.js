@@ -124,7 +124,7 @@ module.exports = {
                             connection.release();
                         });
                         if (e.toString().indexOf('Duplicate') !== -1) {
-                            res.status(500).send({ errMsg: '邮箱' + envUserMap.userId + '已存在' });
+                            response.status(500).send({ errMsg: '邮箱' + envUserMap.userId + '已存在' });
                         } else {
                             response.sendStatus(500);
                         }
