@@ -15,6 +15,7 @@ module.exports = {
 
             if (!query.page || !query.pageSize) {
                 res.status(400).send('Bad Request! Required Parameters: page and pageSize');
+                return;
             }
             var page, pageSize;
 
@@ -23,6 +24,7 @@ module.exports = {
                 pageSize = parseInt(query.pageSize, 10);
             } catch (e) {
                 res.status(400).send('Bad Request! page and pageSize should be Number');
+                return;
             }
             if (isNaN(page)) {
                 page = 1;
@@ -51,7 +53,7 @@ module.exports = {
             MService.query(totalCountSql, allCritria,
               function (e, result) {
                   if (e) {
-                      res.sendStatus(500);
+                      res.status(500).send(e);
                       return;
                   }
 
@@ -72,7 +74,7 @@ module.exports = {
                   limitSql += ' GROUP BY _env_user.updatedTime DESC LIMIT ' + startIndex + ', ' + pageSize;
                   MService.query(limitSql, allCritria, function (err, entity) {
                       if (err) {
-                          res.sendStatus(500);
+                          res.status(500).send(err);
                           return;
                       }
                       res.json(new PaginationResponse(entity, page, pageSize, totalSize));
@@ -87,6 +89,7 @@ module.exports = {
 
             if (!body.name || !body.email || !body.status || !body.userType) {
                 res.status(400).send('Bad Request! Required Parameters:name, status, userType and email');
+                return;
             }
             var to = global.AppConfig.env.production ? body.email : global.AppConfig.mail.username; // list of receivers
             var url = (configHost + '#/domain/' + params.domainId);
@@ -133,7 +136,7 @@ module.exports = {
                         if (e.toString().indexOf('Duplicate') !== -1) {
                             response.status(500).send({ errMsg: '邮箱' + envUserMap.userId + '已存在' });
                         } else {
-                            response.sendStatus(500);
+                            response.status(500).send(e);
                         }
                         return;
                     }
@@ -141,7 +144,8 @@ module.exports = {
                     connection.commit(function (err) {
                         connection.release();
                         if (err) {
-                            response.sendStatus(500);
+                            response.status(500).send(err);
+                            return;
                         }
                         response.sendStatus(204);
                     });
@@ -154,7 +158,7 @@ module.exports = {
                           insertEnvUser(connection, res, false);
                       } else {
                           connection.release();
-                          res.sendStatus(500);
+                          res.status(500).send(e);
                       }
                       return;
                   }
@@ -167,11 +171,12 @@ module.exports = {
 
             if (!query.email) {
                 res.status(400).send('Bad Request! Required Parameters: email');
+                return;
             }
 
             MService.query('DELETE FROM ?? WHERE userId=?', [envUsersTableName, query.email], function (e) {
                 if (e) {
-                    res.sendStatus(500);
+                    res.status(500).send(e);
                     return;
                 }
                 res.sendStatus(204);
@@ -184,6 +189,7 @@ module.exports = {
 
             if (!body.name || !body.email || !body.status || !body.userType) {
                 res.status(400).send('Bad Request! Required Parameters: userId, name, status, userType and email');
+                return;
             }
 
             var entity = {
@@ -197,7 +203,7 @@ module.exports = {
               [envUsersTableName, entity, body.email, req.params.env],
               function (e) {
                   if (e) {
-                      res.sendStatus(500);
+                      res.status(500).send(e);
                       return;
                   }
                   res.sendStatus(204);

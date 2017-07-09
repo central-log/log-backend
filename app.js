@@ -77,6 +77,7 @@ function startAppServer(db) {
     require('./module/domain').init(app, db);
     require('./module/domain-user').init(app, db);
     require('./module/role').init(app, db);
+    require('./module/permission').init(app, db);
     require('./module/user').init(app, db);
     require('./module-group').init(app, db);
     require('./module/user').init(app, db);

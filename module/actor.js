@@ -8,6 +8,7 @@ module.exports = {
 
             if (!body.username || !body.password) {
                 res.status(400).send('Bad Request! Required Parameters: username, password');
+                return;
             }
 
             var criteria = {
@@ -17,7 +18,7 @@ module.exports = {
 
             Member.find(criteria, 1, 1, function (err, docs, totalSize) {
                 if (err) {
-                    res.status(500);
+                    res.status(500).send(err);
                     return;
                 }
                 if (totalSize) {

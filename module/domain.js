@@ -13,6 +13,7 @@ module.exports = {
 
             if (!params.page || !params.pageSize) {
                 res.status(400).send('Bad Request! Required Parameters: page and pageSize');
+                return;
             }
             var page, pageSize;
 
@@ -21,6 +22,7 @@ module.exports = {
                 pageSize = parseInt(params.pageSize, 10);
             } catch (e) {
                 res.status(400).send('Bad Request! page and pageSize should be Number');
+                return;
             }
             if (isNaN(page)) {
                 page = 1;
@@ -45,7 +47,7 @@ module.exports = {
               [domainTableName, criteria, criteria, criteria],
               function (e, result) {
                   if (e) {
-                      res.sendStatus(500);
+                      res.status(500).send(e);
                       return;
                   }
                   var totalSize = result[0].totalSize;
@@ -66,7 +68,7 @@ module.exports = {
                     [domainTableName, criteria, criteria, criteria],
                     function (err, entity) {
                         if (err) {
-                            res.sendStatus(500);
+                            res.status(500).send(err);
                             return;
                         }
                         res.json(new PaginationResponse(entity, page, pageSize, totalSize));
@@ -104,7 +106,7 @@ module.exports = {
                     if (e.toString().indexOf('Duplicate') !== -1) {
                         res.status(500).send({ errMsg: req.body.name + '已存在' });
                     } else {
-                        res.sendStatus(500);
+                        res.status(500).send(e);
                     }
                     return;
                 }
@@ -119,7 +121,7 @@ module.exports = {
               [domainTableName, req.params.id],
               function (e, entity) {
                   if (e) {
-                      res.sendStatus(500);
+                      res.status(500).send(e);
                       return;
                   }
                   if (entity[0]._id) {
@@ -165,7 +167,7 @@ module.exports = {
                     if (e.toString().indexOf('Duplicate') !== -1) {
                         res.status(500).send({ errMsg: '部署环境' + entity.name + '已存在' });
                     } else {
-                        res.sendStatus(500);
+                        res.status(500).send(e);
                     }
                     return;
                 }
@@ -178,6 +180,7 @@ module.exports = {
 
             if (!params.domainId || !params.envId) {
                 res.status(400).send('Bad Request! Required Parameters: domainId, envId');
+                return;
             }
             var criteria = {
                 id: params.envId
@@ -185,7 +188,7 @@ module.exports = {
 
             MService.query('DELETE FROM ?? WHERE ?', [domainEnvTableName, criteria], function (e) {
                 if (e) {
-                    res.sendStatus(500);
+                    res.status(500).send(e);
                     return;
                 }
                 res.sendStatus(204);
@@ -215,7 +218,7 @@ module.exports = {
                     if (e.toString().indexOf('Duplicate') !== -1) {
                         res.status(500).send({ errMsg: '部署环境' + entity.name + '已存在' });
                     } else {
-                        res.sendStatus(500);
+                        res.status(500).send(e);
                     }
 
                     return;

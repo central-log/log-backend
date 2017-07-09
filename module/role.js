@@ -10,6 +10,7 @@ module.exports = {
 
             if (!query.page || !query.pageSize) {
                 res.status(400).send('Bad Request! Required Parameters: page and pageSize');
+                return;
             }
             var page, pageSize;
 
@@ -18,6 +19,7 @@ module.exports = {
                 pageSize = parseInt(query.pageSize, 10);
             } catch (e) {
                 res.status(400).send('Bad Request! page and pageSize should be Number');
+                return;
             }
             if (isNaN(page)) {
                 page = 1;
@@ -88,12 +90,29 @@ module.exports = {
                       res.json(entity[0] || {});
                   });
         });
+        app.delete('/role/permission/:id/:permissionId', function (req, res) {
+
+            MService.query('DELETE FROM role_permission WHERE permissionId=? AND roleId=?',
+              [req.params.permissionId, req.params.id], function (e) {
+                  if (e) {
+                      res.status(500).send(e);
+                      return;
+                  }
+                  res.sendStatus(204);
+              });
+        });
 
         // Get Domain Detail
-        app.get('/role/:id/permission', function (req, res) {
+        app.get('/role/permission/:id', function (req, res) {
 
-            MService.query('SELECT permissions.* FROM role_permission LEFT JOIN permissions ON permissions.id=role_permission.permissionId WHERE role_permission.roleId=? AND permissions.name LIKE ? ORDER BY role_permission.updatedTime',
-                  [req.params.id, '%' + req.query.name + '%'],
+            var limitSql = 'SELECT permissions.*, role_permission.updatedTime FROM role_permission LEFT JOIN permissions ON permissions.id=role_permission.permissionId WHERE role_permission.roleId=? ';
+
+            if (req.query.name) {
+                limitSql += ' AND permissions.name LIKE ? ';
+            }
+            limitSql += 'ORDER BY role_permission.updatedTime';
+
+            MService.query(limitSql, [req.params.id, '%' + req.query.name + '%'],
                   function (e, entity) {
                       if (e) {
                           res.status(500).send(e);
@@ -103,11 +122,41 @@ module.exports = {
                   });
         });
 
+        // Get Domain Detail
+        app.put('/role/permission/:id', function (req, res) {
+
+            var body = req.body;
+
+            if (!body.permissionId) {
+                res.status(400).send('Bad Request! Required Parameters: permissionId');
+                return;
+            }
+            var entity = {
+                permissionId: body.permissionId,
+                roleId: req.params.id,
+                updatedTime: new Date().getTime()
+            };
+
+            MService.query('INSERT INTO role_permission SET ?', entity,
+                  function (e) {
+                      if (e) {
+                          if (e.toString().indexOf('Duplicate') !== -1) {
+                              res.sendStatus(204);
+                          } else {
+                              res.status(500).send(e);
+                          }
+                          return;
+                      }
+                      res.sendStatus(204);
+                  });
+        });
+
         app.put('/role', function (req, res) {
             var body = req.body;
 
             if (!body.name || !body.description || !body.enabled) {
                 res.status(400).send('Bad Request! Required Parameters: name, description, enabled');
+                return;
             }
             var timestamp = new Date().getTime();
             var entity = {
@@ -150,6 +199,7 @@ module.exports = {
 
             if (!body.name || !body.description || !body.enabled) {
                 res.status(400).send('Bad Request! Required Parameters: name, description, enabled');
+                return;
             }
 
             var entity = {
