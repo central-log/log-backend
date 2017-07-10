@@ -77,13 +77,12 @@ function startAppServer(db) {
     require('./module/domain').init(app, db);
     require('./module/domain-user').init(app, db);
     require('./module/role').init(app, db);
+    require('./module/group').init(app, db);
     require('./module/permission').init(app, db);
     require('./module/user').init(app, db);
-    require('./module-group').init(app, db);
-    require('./module/user').init(app, db);
     require('./module/actor').init(app, db);
+
     require('./module-login').init(app, db);
-    require('./module-location').init(app, db);
     require('./module-menu').init(app, db);
 
     require('http').createServer(app).listen(DEFAULT_PORT, function () {
