@@ -124,7 +124,7 @@ module.exports = {
                       res.status(500).send(e);
                       return;
                   }
-                  if (entity[0]._id) {
+                  if (entity[0] && entity[0]._id) {
                       entity[0].env = entity.map(function (row) {
                           return {
                               id: row._id,
