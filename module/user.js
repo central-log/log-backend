@@ -96,6 +96,56 @@ module.exports = {
                   });
         });
 
+
+        app.get('/user/role/:userId', function (req, res) {
+
+            MService.query('SELECT roles.*, role_users.updatedTime FROM role_users LEFT JOIN roles ON role_users.roleId=roles.id WHERE role_users.userId=? ORDER BY role_users.updatedTime DESC',
+                          [req.params.userId],
+                          function (e, entity) {
+                              if (e) {
+                                  res.status(500).send(e);
+                                  return;
+                              }
+                              res.json(entity);
+                          });
+        });
+        app.delete('/user/role/:userId/:roleId', function (req, res) {
+
+            MService.query('DELETE FROM role_users WHERE userId=? AND roleId=?',
+                          [req.params.userId, req.params.roleId],
+                          function (e) {
+                              if (e) {
+                                  res.status(500).send(e);
+                                  return;
+                              }
+                              res.sendStatus(204);
+                          });
+        });
+        app.put('/user/role/:userId/:roleId', function (req, res) {
+
+            var timestamp = new Date().getTime();
+            var entity = {
+                userId: req.params.userId,
+                roleId: req.params.roleId,
+                createdTime: timestamp,
+                updatedTime: timestamp
+            };
+
+            MService.query('INSERT INTO role_users SET ?',
+                          [entity],
+                          function (e) {
+                              if (e) {
+                                  if (e.toString().indexOf('Duplicate') !== -1) {
+                                      res.sendStatus(204);
+                                  } else {
+                                      res.status(500).send(e);
+                                  }
+                                  return;
+                              }
+                              res.sendStatus(204);
+                          });
+        });
+
         app.put('/user', function (req, res) {
             var body = req.body;
 
