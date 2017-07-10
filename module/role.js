@@ -154,7 +154,7 @@ module.exports = {
         app.put('/role', function (req, res) {
             var body = req.body;
 
-            if (!body.name || !body.description || !body.enabled) {
+            if (!body.name || !body.description || !('enabled' in body)) {
                 res.status(400).send('Bad Request! Required Parameters: name, description, enabled');
                 return;
             }
@@ -197,7 +197,7 @@ module.exports = {
         app.post('/role/detail/:id', function (req, res) {
             var body = req.body;
 
-            if (!body.name || !body.description || !body.enabled) {
+            if (!body.name || !body.description || !('enabled' in body)) {
                 res.status(400).send('Bad Request! Required Parameters: name, description, enabled');
                 return;
             }
@@ -216,7 +216,8 @@ module.exports = {
                       res.status(400).send(e);
                       return;
                   }
-                  res.sendStatus(204);
+                  entity.id = req.params.id;
+                  res.json(entity);
               });
         });
 
