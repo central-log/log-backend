@@ -171,7 +171,7 @@ module.exports = {
             MService.query('INSERT INTO ?? SET ?', [roleTableName, entity], function (e) {
                 if (e) {
                     if (e.toString().indexOf('Duplicate') !== -1) {
-                        res.status(500).send({ errMsg: '用户' + entity.email + '已存在' });
+                        res.status(500).send({ errMsg: '角色' + entity.name + '已存在' });
                     } else {
                         res.status(500).send(e);
                     }
@@ -213,7 +213,11 @@ module.exports = {
               [roleTableName, entity, req.params.id],
               function (e) {
                   if (e) {
-                      res.status(400).send(e);
+                      if (e.toString().indexOf('Duplicate') !== -1) {
+                          res.status(500).send({ errMsg: '角色' + entity.name + '已存在' });
+                      } else {
+                          res.status(500).send(e);
+                      }
                       return;
                   }
                   entity.id = req.params.id;
