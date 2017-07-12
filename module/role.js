@@ -107,12 +107,9 @@ module.exports = {
 
             var limitSql = 'SELECT permissions.*, role_permission.updatedTime FROM role_permission LEFT JOIN permissions ON permissions.id=role_permission.permissionId WHERE role_permission.roleId=? ';
 
-            if (req.query.name) {
-                limitSql += ' AND permissions.name LIKE ? ';
-            }
             limitSql += 'ORDER BY role_permission.updatedTime';
 
-            MService.query(limitSql, [req.params.id, '%' + req.query.name + '%'],
+            MService.query(limitSql, [req.params.id],
                   function (e, entity) {
                       if (e) {
                           res.status(500).send(e);
@@ -184,7 +181,7 @@ module.exports = {
         app.delete('/role/detail/:id', function (req, res) {
             var params = req.params;
 
-            MService.query('DELETE FROM ?? WHERE id=?', [roleTableName, params.email], function (e) {
+            MService.query('DELETE FROM ?? WHERE id=?', [roleTableName, params.id], function (e) {
                 if (e) {
                     res.status(500).send(e);
                     return;

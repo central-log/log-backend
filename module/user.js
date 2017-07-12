@@ -109,6 +109,33 @@ module.exports = {
                               res.json(entity);
                           });
         });
+
+        app.get('/user/group/:userId', function (req, res) {
+
+            MService.query('SELECT groups.*, user_group.updatedTime FROM user_group LEFT JOIN groups ON user_group.groupId=groups.id WHERE user_group.userId=? ORDER BY user_group.updatedTime DESC',
+                          [req.params.userId],
+                          function (e, entity) {
+                              if (e) {
+                                  res.status(500).send(e);
+                                  return;
+                              }
+                              res.json(entity);
+                          });
+        });
+
+        app.delete('/user/group/:userId/:groupId', function (req, res) {
+
+            MService.query('DELETE FROM user_group WHERE userId=? AND groupId=?',
+                          [req.params.userId, req.params.groupId],
+                          function (e) {
+                              if (e) {
+                                  res.status(500).send(e);
+                                  return;
+                              }
+                              res.sendStatus(204);
+                          });
+        });
+
         app.delete('/user/role/:userId/:roleId', function (req, res) {
 
             MService.query('DELETE FROM role_users WHERE userId=? AND roleId=?',
@@ -121,13 +148,36 @@ module.exports = {
                               res.sendStatus(204);
                           });
         });
+        app.put('/user/group/:userId/:groupId', function (req, res) {
+
+            var timestamp = new Date().getTime();
+            var entity = {
+                userId: req.params.userId,
+                groupId: req.params.groupId,
+                updatedTime: timestamp
+            };
+
+            MService.query('INSERT INTO user_group SET ?',
+                          [entity],
+                          function (e) {
+                              if (e) {
+                                  if (e.toString().indexOf('Duplicate') !== -1) {
+                                      res.sendStatus(204);
+                                  } else {
+                                      res.status(500).send(e);
+                                  }
+                                  return;
+                              }
+                              res.sendStatus(204);
+                          });
+        });
+
         app.put('/user/role/:userId/:roleId', function (req, res) {
 
             var timestamp = new Date().getTime();
             var entity = {
                 userId: req.params.userId,
                 roleId: req.params.roleId,
-                createdTime: timestamp,
                 updatedTime: timestamp
             };
 

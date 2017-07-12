@@ -1,6 +1,6 @@
 var MService = require('../service/mysql-base');
 var PaginationResponse = require('../entity/PaginationResponse');
-var roleTableName = 'groups';
+var tableName = 'groups';
 var uuidv1 = require('uuid/v1');
 
 module.exports = {
@@ -43,7 +43,7 @@ module.exports = {
             }
 
             var criteria = '%' + query.name + '%';
-            var allCritria = [roleTableName, criteria, criteria];
+            var allCritria = [tableName, criteria, criteria];
 
             MService.query(totalCountSql, allCritria,
               function (e, result) {
@@ -81,7 +81,7 @@ module.exports = {
         app.get('/group/detail/:id', function (req, res) {
 
             MService.query('SELECT * FROM ?? WHERE id=?',
-                  [roleTableName, req.params.id],
+                  [tableName, req.params.id],
                   function (e, entity) {
                       if (e) {
                           res.status(500).send(e);
@@ -90,10 +90,10 @@ module.exports = {
                       res.json(entity[0] || {});
                   });
         });
-        app.delete('/group/permission/:id/:permissionId', function (req, res) {
+        app.delete('/group/role/:id/:roleId', function (req, res) {
 
-            MService.query('DELETE FROM role_permission WHERE permissionId=? AND roleId=?',
-              [req.params.permissionId, req.params.id], function (e) {
+            MService.query('DELETE FROM role_group WHERE groupId=? AND roleId=?',
+              [req.params.id, req.params.roleId], function (e) {
                   if (e) {
                       res.status(500).send(e);
                       return;
@@ -102,17 +102,23 @@ module.exports = {
               });
         });
 
-        // Get Domain Detail
-        app.get('/group/permission/:id', function (req, res) {
+        app.delete('/group/user/:id/:userId', function (req, res) {
 
-            var limitSql = 'SELECT permissions.*, role_permission.updatedTime FROM role_permission LEFT JOIN permissions ON permissions.id=role_permission.permissionId WHERE role_permission.roleId=? ';
+            MService.query('DELETE FROM user_group WHERE groupId=? AND userId=?',
+              [req.params.id, req.params.userId], function (e) {
+                  if (e) {
+                      res.status(500).send(e);
+                      return;
+                  }
+                  res.sendStatus(204);
+              });
+        });
 
-            if (req.query.name) {
-                limitSql += ' AND permissions.name LIKE ? ';
-            }
-            limitSql += 'ORDER BY role_permission.updatedTime';
+        app.get('/group/role/:id', function (req, res) {
 
-            MService.query(limitSql, [req.params.id, '%' + req.query.name + '%'],
+            var limitSql = 'SELECT roles.*, role_group.updatedTime FROM role_group LEFT JOIN roles ON roles.id=role_group.roleId WHERE role_group.groupId=? ORDER BY role_group.updatedTime';
+
+            MService.query(limitSql, [req.params.id],
                   function (e, entity) {
                       if (e) {
                           res.status(500).send(e);
@@ -122,22 +128,51 @@ module.exports = {
                   });
         });
 
-        // Get Domain Detail
-        app.put('/group/permission/:id', function (req, res) {
+        app.get('/group/user/:id', function (req, res) {
 
-            var body = req.body;
+            var limitSql = 'SELECT users.*, user_group.updatedTime FROM user_group LEFT JOIN users ON users.id=user_group.userId WHERE user_group.groupId=? ORDER BY user_group.updatedTime';
 
-            if (!body.permissionId) {
-                res.status(400).send('Bad Request! Required Parameters: permissionId');
-                return;
-            }
+            MService.query(limitSql, [req.params.id],
+                  function (e, entity) {
+                      if (e) {
+                          res.status(500).send(e);
+                          return;
+                      }
+                      res.json(entity || {});
+                  });
+        });
+
+        app.put('/group/role/:id/:roleId', function (req, res) {
+
             var entity = {
-                permissionId: body.permissionId,
-                roleId: req.params.id,
+                groupId: req.params.id,
+                roleId: req.params.roleId,
                 updatedTime: new Date().getTime()
             };
 
-            MService.query('INSERT INTO role_permission SET ?', entity,
+            MService.query('INSERT INTO role_group SET ?', entity,
+                  function (e) {
+                      if (e) {
+                          if (e.toString().indexOf('Duplicate') !== -1) {
+                              res.sendStatus(204);
+                          } else {
+                              res.status(500).send(e);
+                          }
+                          return;
+                      }
+                      res.sendStatus(204);
+                  });
+        });
+
+        app.put('/group/user/:id/:userId', function (req, res) {
+
+            var entity = {
+                groupId: req.params.id,
+                userId: req.params.userId,
+                updatedTime: new Date().getTime()
+            };
+
+            MService.query('INSERT INTO user_group SET ?', entity,
                   function (e) {
                       if (e) {
                           if (e.toString().indexOf('Duplicate') !== -1) {
@@ -168,10 +203,10 @@ module.exports = {
                 updatedTime: timestamp
             };
 
-            MService.query('INSERT INTO ?? SET ?', [roleTableName, entity], function (e) {
+            MService.query('INSERT INTO ?? SET ?', [tableName, entity], function (e) {
                 if (e) {
                     if (e.toString().indexOf('Duplicate') !== -1) {
-                        res.status(500).send({ errMsg: '角色' + entity.name + '已存在' });
+                        res.status(500).send({ errMsg: '组' + entity.name + '已存在' });
                     } else {
                         res.status(500).send(e);
                     }
@@ -184,7 +219,7 @@ module.exports = {
         app.delete('/group/detail/:id', function (req, res) {
             var params = req.params;
 
-            MService.query('DELETE FROM ?? WHERE id=?', [roleTableName, params.email], function (e) {
+            MService.query('DELETE FROM ?? WHERE id=?', [tableName, params.id], function (e) {
                 if (e) {
                     res.status(500).send(e);
                     return;
@@ -210,11 +245,11 @@ module.exports = {
             };
 
             MService.query('UPDATE ?? SET ? WHERE id=?',
-              [roleTableName, entity, req.params.id],
+              [tableName, entity, req.params.id],
               function (e) {
                   if (e) {
                       if (e.toString().indexOf('Duplicate') !== -1) {
-                          res.status(500).send({ errMsg: '角色' + entity.name + '已存在' });
+                          res.status(500).send({ errMsg: '组' + entity.name + '已存在' });
                       } else {
                           res.status(500).send(e);
                       }
