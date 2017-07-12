@@ -1,5 +1,5 @@
-var Member = require('../service/member');
 var md5 = require('md5');
+var MService = require('../service/mysql-base');
 
 module.exports = {
     init: function (app) {
@@ -11,24 +11,21 @@ module.exports = {
                 return;
             }
 
-            var criteria = {
-                'email': body.username,
-                'password': md5(body.password)
-            };
+            MService.query('SELECT email FROM users WHERE email=? AND password=?',
+              [body.username, md5(body.password)], function (e, entity) {
+                  if (e) {
+                      res.status(500).send(e);
+                      return;
+                  }
+                  req.session.email = body.username;
+                  res.json(entity[0] || {});
+              });
+        });
 
-            Member.find(criteria, 1, 1, function (err, docs, totalSize) {
-                if (err) {
-                    res.status(500).send(err);
-                    return;
-                }
-                if (totalSize) {
-                    req.session.email = body.username;
-                    return res.json({
-                        email: body.username
-                    });
-                } else {
-                    res.status(500).send({ errMsg: '用户名或密码错误' });
-                }
+        app.post('/actor/logout', function (req, res) {
+            req.session.email = null;
+            req.session.destroy(function () {
+                res.sendStatus(204);
             });
         });
 
