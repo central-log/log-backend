@@ -83,7 +83,6 @@ function startAppServer(db) {
     require('./module/actor').init(app, db);
 
     require('./module-login').init(app, db);
-    require('./module-menu').init(app, db);
 
     require('http').createServer(app).listen(DEFAULT_PORT, function () {
         console.info('Node server listening on https://localhost:' + DEFAULT_PORT);
