@@ -38,7 +38,7 @@ function connectMongoDB(callback) {
     var assert = require('assert');
 
   // Connection URL
-    var url = 'mongodb://localhost:27017/central-log-management';
+    var url = 'mongodb://' + global.AppConfig.mongodb.host + ':' + global.AppConfig.mongodb.port + '/' + global.AppConfig.mongodb.database;
   // Use connect method to connect to the Server
 
     MongoClient.connect(url, function (err, db) {

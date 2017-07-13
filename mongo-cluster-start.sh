@@ -34,6 +34,9 @@ cd $workingdir
 ./bin/mongos --configdb cloudConfigSever/$currentHost:$((basePort+1)),$currentHost:$((basePort+2)),$currentHost:$((basePort+3)) --fork --logappend --logpath ./mongo-nodes/shardedcluster.log --port $mongosPort
 # mongo --host <hostname> --port <port>
 # sh.addShard( "<replSetName>/s1-mongo1.example.net:27017")
-
+# sh.shardCollection("<database>.<collection>", { <key> : <direction> } )
 # cd /home/nb073/benlv/cloudLog/binary/mongodb-linux-x86_64-ubuntu1404-3.4.2
+
+# for (var i=0; i<100000; i++) {  db.logs.insert( { "username" : "user"+i, "created at" : new Date() } );  }
+
 # ./bin/mongos --configdb R9P6XYZ:27001,R9P6XYZ:27002,R9P6XYZ:27003 --fork --logappend --logpath ./mongo-nodes/shardedcluster.log
