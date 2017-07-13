@@ -8,10 +8,10 @@ var RedisStore = require('connect-redis')(session);
 var pkg = require('./package.json');
 var DEFAULT_PORT = pkg.port;
 var client;
-var mysql      = require('mysql');
+var mysql = require('mysql');
 
+global.redisDomainKey = '_domains_list';
 function connectMysql(callback) {
-
 
     var pool = mysql.createPool({
         connectionLimit: global.AppConfig.mysql.connectionPoolMaxSize,
@@ -54,7 +54,42 @@ function connectRedis(callback) {
 
     client.on('connect', function () {
         console.info('Connect to redis server ' + global.AppConfig.redis.host + ' on port:' + global.AppConfig.redis.port);
-        callback && callback();
+
+        var MService = require('./service/mysql-base');
+
+        MService.query('SELECT domain.id, domain.endDateTime, domain.enabled, domain_env.name as _name, domain_env.logLevel as _logLevel, domain_env.email as _email FROM domain LEFT JOIN domain_env ON domain.id = domain_env.domainId',
+          function (err, entity) {
+              if (err) {
+                  throw new Error(err);
+              }
+              var domains = {};
+              var i, len = entity.length;
+              var element, exists;
+
+              for (i = 0; i < len; i++) {
+                  element = entity[i];
+                  exists = (element.id in domains);
+
+                  if (!exists) {
+                      domains[element.id] = '' + element.enabled;
+                      domains[element.id + '.endDateTime'] = '' + element.endDateTime;
+                  }
+                  if (element._name) {
+                      domains[element.id + '.' + element._name + '.logLevel'] = element._logLevel;
+                      domains[element.id + '.' + element._name + '.email'] = element._email;
+                  }
+              }
+              console.log('domains', domains);
+              // eslint-disable-next-line
+              client.HMSET(global.redisDomainKey, domains);
+              client.hgetall(global.redisDomainKey, function (e, obj) {
+                  console.log('_domains', obj);
+              });
+
+
+              callback && callback();
+          });
+
     });
 }
 
