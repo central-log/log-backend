@@ -6,3 +6,6 @@ API
 
 How to set up a MongoDB Sharded Cluster
 3. http://www.mongodbspain.com/en/2015/01/26/how-to-set-up-a-mongodb-sharded-cluster/
+
+Deploy a Sharded Cluster
+https://docs.mongodb.com/manual/tutorial/deploy-shard-cluster/
