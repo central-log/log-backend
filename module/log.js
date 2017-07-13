@@ -13,7 +13,7 @@ module.exports = {
                 return;
             }
 
-            MService.query('SELECT endDateTime FROM domain WHERE id=? AND key=?',
+            MService.query('SELECT endDateTime FROM domain WHERE id=? AND secret=?',
               [body.username, body.password],
               function (e, entity) {
                   if (e) {
@@ -76,7 +76,7 @@ module.exports = {
         });
 
         app.get('/logs', function (req, res) {
-          
+
         });
 
     }

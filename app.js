@@ -80,12 +80,15 @@ function connectRedis(callback) {
                   }
               }
               console.log('domains', domains);
-              // eslint-disable-next-line
-              client.HMSET(global.redisDomainKey, domains);
-              client.hgetall(global.redisDomainKey, function (e, obj) {
-                  console.log('_domains', obj);
-              });
+              var keys = Object.keys(domains).length;
 
+              if (keys) {
+                  // eslint-disable-next-line
+                  client.HMSET(global.redisDomainKey, domains);
+                  client.hgetall(global.redisDomainKey, function (e, obj) {
+                      console.log('_domains', obj);
+                  });
+              }
 
               callback && callback();
           });

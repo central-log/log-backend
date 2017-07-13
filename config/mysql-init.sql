@@ -16,7 +16,7 @@ CREATE TABLE domain(
    name VARCHAR (40)     NOT NULL UNIQUE,
 	description VARCHAR (100)     NOT NULL,
 	email VARCHAR (500)     NOT NULL,
-  key VARCHAR (40) NOT NULL,
+  secret VARCHAR (40) NOT NULL,
 	endDateTime long     NOT NULL,
    starDateTime  long              NOT NULL,
    createdTime long     NOT NULL,
