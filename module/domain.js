@@ -137,13 +137,13 @@ module.exports = {
 
                     var newDomainMailOptions = {
                         to: to,
-                        subject: '对接系统添加成功－日志集成管理系统', // Subject line
+                        subject: '欢迎加入日志集成管理系统', // Subject line
                         // text: '<b>Hello world ?</b>' // html body
                         html: '<h3>欢迎加入日志集成管理系统</h3><br/><a href="' + url + '">' + url + '</a>，您的用户名为【<b>' + entity.email + '</b>】，密码为<b>' + password + '</b>' // plain text body
                     };
                     var addMemberMailOptions = {
                         to: to,
-                        subject: '欢迎加入日志集成管理系统', // Subject line
+                        subject: '对接系统添加成功－日志集成管理系统', // Subject line
                       // text: '<b>Hello world ?</b>' // html body
                         html: '<h3>欢迎加入日志集成管理系统</h3><br/>你可以访问<a href="' + url + '">' + url + '</a>, 对接系统的Secret Key为<b>' + entity.secret + '</b>,请保存！' // plain text body
                     };
