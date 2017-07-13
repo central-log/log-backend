@@ -2,7 +2,13 @@ var MService = require('../service/mysql-base');
 var PaginationResponse = require('../entity/PaginationResponse');
 var uuidv1 = require('uuid/v1');
 var domainTableName = 'domain';
+var Password = require('../service/password');
+var Mail = require('../service/mail');
+var userTableName = 'users';
 var domainEnvTableName = 'domain_env';
+var md5 = require('md5');
+var Utils = require('../utils/Utils');
+var configHost = Utils.ensureSlash(global.AppConfig.env.host, true);
 
 module.exports = {
     init: function (app) {
@@ -94,6 +100,7 @@ module.exports = {
                 name: req.body.name,
                 description: req.body.description,
                 email: req.body.email,
+                secret: md5(uuidv1()),
                 endDateTime: req.body.endDateTime,
                 starDateTime: req.body.starDateTime,
                 createdTime: timestamp,
@@ -101,17 +108,73 @@ module.exports = {
                 enabled: true
             };
 
-            MService.query('INSERT INTO ?? SET ?', [domainTableName, entity], function (e) {
-                if (e) {
-                    if (e.toString().indexOf('Duplicate') !== -1) {
-                        res.status(500).send({ errMsg: req.body.name + '已存在' });
-                    } else {
-                        res.status(500).send(e);
+            function insertUser(connection) {
+                var password = Password.generate();
+                var userEntity = {
+                    name: entity.email,
+                    createdTime: timestamp,
+                    updatedTime: timestamp,
+                    email: entity.email,
+                    password: md5(password)
+                };
+
+                connection.query('INSERT INTO ?? SET ?', [userTableName, userEntity], function (e) {
+                    var isUserNotExists = true;
+
+                    if (e) {
+                        if (e.toString().indexOf('Duplicate') === -1) {
+                            connection.rollback(function () {
+                                connection.release();
+                            });
+                            res.status(500).send(e);
+                            return;
+                        } else {
+                            isUserNotExists = false;
+                        }
                     }
-                    return;
-                }
-                res.json(entity);
-            });
+                    var to = global.AppConfig.env.production ? entity.email : global.AppConfig.mail.username; // list of receivers
+                    var url = (configHost + '#/domain/' + entity.id);
+
+                    var newDomainMailOptions = {
+                        to: to,
+                        subject: '对接系统添加成功－日志集成管理系统', // Subject line
+                        // text: '<b>Hello world ?</b>' // html body
+                        html: '<h3>欢迎加入日志集成管理系统</h3><br/><a href="' + url + '">' + url + '</a>，您的用户名为【<b>' + entity.email + '</b>】，密码为<b>' + password + '</b>' // plain text body
+                    };
+                    var addMemberMailOptions = {
+                        to: to,
+                        subject: '欢迎加入日志集成管理系统', // Subject line
+                      // text: '<b>Hello world ?</b>' // html body
+                        html: '<h3>欢迎加入日志集成管理系统</h3><br/>你可以访问<a href="' + url + '">' + url + '</a>, 对接系统的Secret Key为<b>' + entity.secret + '</b>,请保存！' // plain text body
+                    };
+
+                    connection.commit(function (err) {
+                        connection.release();
+                        if (err) {
+                            res.status(500).send(err);
+                            return;
+                        }
+                        if (isUserNotExists) {
+                            Mail.send(addMemberMailOptions);
+                        }
+                        Mail.send(newDomainMailOptions);
+                        res.sendStatus(204);
+                    });
+                });
+            }
+            MService.transaction('INSERT INTO ?? SET ?', [domainTableName, entity],
+              function (e, connection) {
+                  if (e) {
+                      connection.release();
+                      if (e.toString().indexOf('Duplicate') !== -1) {
+                          res.status(500).send({ errMsg: req.body.name + '已存在' });
+                      } else {
+                          res.status(500).send(e);
+                      }
+                      return;
+                  }
+                  insertUser(connection);
+              });
         });
 
 		// Get Domain Detail
