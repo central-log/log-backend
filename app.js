@@ -10,6 +10,9 @@ var DEFAULT_PORT = pkg.port;
 var client;
 var mysql = require('mysql');
 
+global.ENV_ACTIVE = 'active';
+global.ENV_DISABLE = '';
+
 global.redisDomainKey = '_domains_list';
 function connectMysql(callback) {
 
@@ -77,23 +80,22 @@ function connectRedis(callback) {
                   if (element._name) {
                       domains[element.id + '.' + element._name + '.logLevel'] = element._logLevel;
                       domains[element.id + '.' + element._name + '.email'] = element._email;
+                      domains[element.id + '.' + element._name + '.active'] = global.ENV_ACTIVE;
                   }
               }
               console.log('domains', domains);
-              var keys = Object.keys(domains).length;
+              var keys = Object.keys(domains);
 
-              if (keys) {
-                  // eslint-disable-next-line
-                  client.HMSET(global.redisDomainKey, domains);
-                  client.hgetall(global.redisDomainKey, function (e, obj) {
-                      console.log('_domains', obj);
-                  });
-              }
+              keys.forEach(function (k) {
+                  client.set(k, domains[k]);
+              });
 
               callback && callback();
           });
 
     });
+
+    global.redisClient = client;
 }
 
 function startAppServer(db) {

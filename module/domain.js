@@ -145,7 +145,7 @@ module.exports = {
                         to: to,
                         subject: '对接系统添加成功－日志集成管理系统', // Subject line
                       // text: '<b>Hello world ?</b>' // html body
-                        html: '<h3>欢迎加入日志集成管理系统</h3><br/>你可以访问<a href="' + url + '">' + url + '</a>, 对接系统的Secret Key为<b>' + entity.secret + '</b>,请保存！' // plain text body
+                        html: '<h3>添加对接系统' + req.body.name + '成功！日志集成管理系统</h3><br/>你可以访问<a href="' + url + '">' + url + '</a>' // plain text body
                     };
 
                     connection.commit(function (err) {
@@ -157,6 +157,8 @@ module.exports = {
                         if (isUserNotExists) {
                             Mail.send(addMemberMailOptions);
                         }
+                        global.redisClient.set(entity.id, entity.enabled);
+                        global.redisClient.set(entity.id + '.endDateTime', entity.endDateTime);
                         Mail.send(newDomainMailOptions);
                         res.sendStatus(204);
                     });
@@ -234,6 +236,9 @@ module.exports = {
                     }
                     return;
                 }
+                global.redisClient.set(entity.domainId + '.' + entity.name + '.logLevel', entity.logLevel);
+                global.redisClient.set(entity.domainId + '.' + entity.name + '.email', entity.email);
+                global.redisClient.set(entity.domainId + '.' + entity.name + '.active', global.ENV_ACTIVE);
                 res.sendStatus(204);
             });
         });
@@ -249,13 +254,27 @@ module.exports = {
                 id: params.envId
             };
 
-            MService.query('DELETE FROM ?? WHERE ?', [domainEnvTableName, criteria], function (e) {
-                if (e) {
+            MService.query('SELECT name FROM domain_env WHERE id=?', [params.envId], function (e) {
+                if (e, res) {
                     res.status(500).send(e);
                     return;
                 }
-                res.sendStatus(204);
+                if (!res[0]) {
+                    return res.sendStatus(204);
+                }
+
+                var beforeName = res[0];
+
+                MService.query('DELETE FROM ?? WHERE ?', [domainEnvTableName, criteria], function (err) {
+                    if (err) {
+                        res.status(500).send(err);
+                        return;
+                    }
+                    global.redisClient.set(params.domainId + '.' + beforeName + '.active', global.ENV_DISABLE);
+                    res.sendStatus(204);
+                });
             });
+
         });
 		// 修改部署环境
         app.post('/domain/:domainId/env/:envId', function (req, res) {
@@ -276,19 +295,38 @@ module.exports = {
                 updatedTime: new Date().getTime()
             };
 
-            MService.query('UPDATE ?? SET ? WHERE id=?', [domainEnvTableName, entity, req.params.envId], function (e) {
-                if (e) {
-                    if (e.toString().indexOf('Duplicate') !== -1) {
-                        res.status(500).send({ errMsg: '部署环境' + entity.name + '已存在' });
-                    } else {
-                        res.status(500).send(e);
-                    }
-
+            MService.query('SELECT name FROM domain_env WHERE id=?', [req.params.envId], function (e) {
+                if (e, res) {
+                    res.status(500).send(e);
                     return;
                 }
-                res.sendStatus(204);
-            });
+                if (!res[0]) {
+                    return res.status(500).send({ errMsg: '部署环境' + entity.name + '不存在' });
+                }
 
+                var beforeName = res[0];
+
+                MService.query('UPDATE ?? SET ? WHERE id=?', [domainEnvTableName, entity, req.params.envId], function (err) {
+                    if (err) {
+                        if (err.toString().indexOf('Duplicate') !== -1) {
+                            res.status(500).send({ errMsg: '部署环境' + entity.name + '已存在' });
+                        } else {
+                            res.status(500).send(err);
+                        }
+                        return;
+                    }
+                    global.redisClient.set(req.params.domainId + '.' + entity.name + '.logLevel', entity.logLevel);
+                    global.redisClient.set(req.params.domainId + '.' + entity.name + '.email', entity.email);
+                    global.redisClient.set(req.params.domainId + '.' + entity.name + '.active', global.ENV_ACTIVE);
+
+                    if (beforeName !== entity.name) {
+                        global.redisClient.set(req.params.domainId + '.' + beforeName + '.active', global.ENV_DISABLE);
+                    }
+
+                    res.sendStatus(204);
+                });
+
+            });
         });
     }
 };
