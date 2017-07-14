@@ -108,7 +108,7 @@ function startAppServer(db) {
     app.use(session({
         secret: global.AppConfig.session.privateKey,
       // create new redis store.
-        store: new RedisStore({ host: global.AppConfig.redis.host, port: global.AppConfig.redis.port, client: client, ttl: 260 }),
+        store: new RedisStore({ host: global.AppConfig.redis.host, port: global.AppConfig.redis.port, client: client, ttl: 1800 }),
         saveUninitialized: false,
         resave: false
     }));
@@ -156,7 +156,7 @@ function startAppServer(db) {
             console.log('message', message);
         });
         setTimeout(function () {
-            p.publish('hello world');
+            p.publish({ name: 'hello world' });
         }, 5000);
     });
     bus.connect();

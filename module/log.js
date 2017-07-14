@@ -108,6 +108,7 @@ module.exports = {
                     req.session.publish = global.MessageBus.pubsub(req.session.email);
                 }
             } else {
+                req.session.publish.publish('closed');
                 req.session.publish = null;
             }
         });
