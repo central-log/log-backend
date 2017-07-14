@@ -35,12 +35,12 @@ module.exports = {
 
             var totalCountSql = 'SELECT COUNT(*) as totalSize';
             var limitSql = 'SELECT _env_user.*,_env_user.userId as email';
-            var joinSql = ' FROM ?? as _env_user LEFT JOIN ?? as _users ON _users.email=_env_user.userId';
+            var joinSql = ' FROM ?? as _env_user LEFT JOIN ?? as _users ON _users.email=_env_user.userId  WHERE _env_user.envId=? ';
 
             totalCountSql += joinSql;
             limitSql += joinSql;
 
-            var criteriaSql = ' WHERE _env_user.name LIKE ? OR _users.email LIKE ?';
+            var criteriaSql = ' AND (_env_user.name LIKE ? OR _users.email LIKE ?)';
 
             if (query.email) {
                 totalCountSql += criteriaSql;
@@ -48,7 +48,7 @@ module.exports = {
             }
 
             var criteria = '%' + query.email + '%';
-            var allCritria = [envUsersTableName, userTableName, criteria, criteria];
+            var allCritria = [envUsersTableName, userTableName, req.params.env, criteria, criteria];
 
             MService.query(totalCountSql, allCritria,
               function (e, result) {

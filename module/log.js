@@ -99,8 +99,17 @@ module.exports = {
 
         });
 
-        app.get('/logs', function (req, res) {
-
+        app.post('/logs/realtime', function (req, res) {
+            if (!('open' in req.body)) {
+                return res.status(400).send('Bad Request! Required Parameters: status');
+            }
+            if (req.body.open) {
+                if (!req.session.publish) {
+                    req.session.publish = global.MessageBus.pubsub(req.session.email);
+                }
+            } else {
+                req.session.publish = null;
+            }
         });
 
     }

@@ -246,13 +246,14 @@ module.exports = {
                 return;
             }
 
-            MService.query('DELETE FROM ?? WHERE userId=?', [envUsersTableName, query.email], function (e) {
-                if (e) {
-                    res.status(500).send(e);
-                    return;
-                }
-                res.sendStatus(204);
-            });
+            MService.query('DELETE FROM ?? WHERE userId=? AND envId=?',
+              [envUsersTableName, query.email, req.params.env], function (e) {
+                  if (e) {
+                      res.status(500).send(e);
+                      return;
+                  }
+                  res.sendStatus(204);
+              });
 
         });
 

@@ -1,0 +1,3 @@
+SELECT email FROM users WHERE email=? AND password=?
+  LEFT JOIN env_users ON env_users.userId=users.email
+  LEFT JOIN domain_env ON domain_env.id=env_users.envId

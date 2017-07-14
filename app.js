@@ -2,6 +2,7 @@ var bodyParser = require('body-parser');
 // var session = require('express-session');
 var allowCrossDomain  = require('./middleware/cors');
 var express = require('express');
+var Bus = require('busmq');
 var redis = require('redis');
 var session = require('express-session');
 var RedisStore = require('connect-redis')(session);
@@ -57,6 +58,8 @@ function connectRedis(callback) {
 
     client.on('connect', function () {
         console.info('Connect to redis server ' + global.AppConfig.redis.host + ' on port:' + global.AppConfig.redis.port);
+
+        // var bus = Bus.create({ redis: ['redis://' + global.AppConfig.redis.host + ':' + global.AppConfig.redis.port] });
 
         var MService = require('./service/mysql-base');
 
@@ -124,9 +127,39 @@ function startAppServer(db) {
 
     require('./module-login').init(app, db);
 
-    require('http').createServer(app).listen(DEFAULT_PORT, function () {
-        console.info('Node server listening on https://localhost:' + DEFAULT_PORT);
+    var httpServer = require('http').createServer(app);
+
+    httpServer.listen(DEFAULT_PORT, function () {
+        console.info('Node server listening on ' + global.AppConfig.env.host);
     });
+    var options = {
+        redis: 'redis://' + global.AppConfig.redis.host + ':' + global.AppConfig.redis.port, // connect this bus to a local running redis
+        federate: { // also open a federation server
+            server: httpServer,  // use the provided http server as the federation server
+            secret: 'cloud-secret',   // a secret key for authorizing clients
+            path: '/ws/log' // the federation service is accessible on this path in the server
+        }
+    };
+    var bus = Bus.create(options);
+
+    bus.on('online', function () {
+        global.MessageBus = bus;
+  // the bus is now ready to receive federation requests
+//         var s = bus.pubsub('my pubsub channel');
+//
+//         s.subscribe();
+
+        var p = bus.pubsub('my pubsub channel');
+
+        p.on('message', function (message) {
+          // received message 'hello world' on subscribed channel
+            console.log('message', message);
+        });
+        setTimeout(function () {
+            p.publish('hello world');
+        }, 5000);
+    });
+    bus.connect();
 }
 
 var Config = require('./config/config');

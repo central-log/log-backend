@@ -13,6 +13,7 @@
   "dependencies": {
     "babel-preset-es2015": "^6.24.1",
     "body-parser": "^1.14.1",
+    "busmq": "^2.1.0",
     "connect-redis": "^3.3.0",
     "eslint": "^3.19.0",
     "eslint-config-es2015": "^1.1.0",
