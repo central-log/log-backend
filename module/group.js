@@ -130,7 +130,7 @@ module.exports = {
 
         app.get('/group/user/:id', function (req, res) {
 
-            var limitSql = 'SELECT users.*, user_group.updatedTime FROM user_group LEFT JOIN users ON users.id=user_group.userId WHERE user_group.groupId=? ORDER BY user_group.updatedTime';
+            var limitSql = 'SELECT users.*, user_group.updatedTime FROM user_group LEFT JOIN users ON users.email=user_group.userId WHERE user_group.groupId=? ORDER BY user_group.updatedTime';
 
             MService.query(limitSql, [req.params.id],
                   function (e, entity) {
